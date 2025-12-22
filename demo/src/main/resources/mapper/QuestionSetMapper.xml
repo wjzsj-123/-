@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.demos.web.mapper.QuestionSetMapper">
+    <sql id="BaseColumnList">
+        id, name, description, category, user_id, create_time, update_time
+    </sql>
+
+    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.QuestionSet">
+        INSERT INTO question_set (name, description, category, user_id, create_time, update_time)
+        VALUES (#{name}, #{description}, #{category}, #{userId}, NOW(), NOW())
+    </insert>
+
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM question_set WHERE id = #{id}
+    </delete>
+
+    <update id="updateById" parameterType="com.example.demo.demos.web.pojo.QuestionSet">
+        UPDATE question_set
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="category != null">category = #{category},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectById" resultType="com.example.demo.demos.web.pojo.QuestionSet">
+        SELECT <include refid="BaseColumnList"/> FROM question_set WHERE id = #{id}
+    </select>
+
+    <select id="selectByUserId" resultType="com.example.demo.demos.web.pojo.QuestionSet">
+        SELECT <include refid="BaseColumnList"/> FROM question_set WHERE user_id = #{userId}
+    </select>
+
+    <select id="selectByCategory" resultType="com.example.demo.demos.web.pojo.QuestionSet">
+        SELECT <include refid="BaseColumnList"/> FROM question_set WHERE category = #{category}
+    </select>
+
+    <select id="selectAll" resultType="com.example.demo.demos.web.pojo.QuestionSet">
+        SELECT <include refid="BaseColumnList"/> FROM question_set
+    </select>
+</mapper>

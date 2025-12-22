@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>用户登录系统</title>
+    <!-- 1. 先引入全局依赖（顺序不可变） -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/vue-router@4/dist/vue-router.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <style>
+        /* 全局样式，统一登录/注册页面样式 */
+        .login-container {
+            width: 380px;
+            margin: 100px auto;
+            padding: 30px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .login-container h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 25px;
+        }
+        .form-item {
+            margin-bottom: 18px;
+        }
+        .form-item label {
+            display: block;
+            margin-bottom: 6px;
+            color: #666;
+            font-size: 14px;
+        }
+        .form-item input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .form-item input:focus {
+            outline: none;
+            border-color: #42b983;
+        }
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #42b983;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .login-btn:hover {
+            background-color: #359e75;
+        }
+        .switch-btn {
+            text-align: center;
+            margin-top: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+        .switch-btn a {
+            color: #42b983;
+            text-decoration: none;
+        }
+        .switch-btn a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<!-- Vue 挂载容器，路由出口 -->
+<div id="app">
+    <router-view></router-view>
+</div>
+
+<!-- 2. 引入路由配置（先加载路由，再加载入口脚本） -->
+<script src="/router/index.js"></script>
+<!-- 3. 引入入口脚本（无需 type="module"） -->
+<script src="/js/main.js"></script>
+</body>
+</html>

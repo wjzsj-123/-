@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.demos.web.mapper.QuestionOptionMapper">
+    <sql id="BaseColumnList">
+        id, question_id, content, is_correct, sort_order
+    </sql>
+
+    <!-- 新增单个选项 -->
+    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.QuestionOption">
+        INSERT INTO question_option (question_id, content, is_correct, sort_order)
+        VALUES (#{questionId}, #{content}, #{isCorrect}, #{sortOrder})
+    </insert>
+
+    <!-- 批量新增选项 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO question_option (question_id, content, is_correct, sort_order)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.questionId}, #{item.content}, #{item.isCorrect}, #{item.sortOrder})
+        </foreach>
+    </insert>
+
+    <!-- 根据ID删除 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM question_option WHERE id = #{id}
+    </delete>
+
+    <!-- 根据题目ID批量删除 -->
+    <delete id="deleteByQuestionId" parameterType="java.lang.Long">
+        DELETE FROM question_option WHERE question_id = #{questionId}
+    </delete>
+
+    <!-- 根据ID更新 -->
+    <update id="updateById" parameterType="com.example.demo.demos.web.pojo.QuestionOption">
+        UPDATE question_option
+        <set>
+            <if test="content != null and content != ''">content = #{content},</if>
+            <if test="isCorrect != null">is_correct = #{isCorrect},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultType="com.example.demo.demos.web.pojo.QuestionOption">
+        SELECT <include refid="BaseColumnList"/> FROM question_option WHERE id = #{id}
+    </select>
+
+    <!-- 根据题目ID查询所有选项（按排序升序） -->
+    <select id="selectByQuestionId" resultType="com.example.demo.demos.web.pojo.QuestionOption">
+        SELECT <include refid="BaseColumnList"/> FROM question_option
+        WHERE question_id = #{questionId}
+        ORDER BY sort_order ASC
+    </select>
+
+    <!-- 查询某题目下的正确选项 -->
+    <select id="selectCorrectOptionsByQuestionId" resultType="com.example.demo.demos.web.pojo.QuestionOption">
+        SELECT <include refid="BaseColumnList"/> FROM question_option
+        WHERE question_id = #{questionId} AND is_correct = 1
+        ORDER BY sort_order ASC
+    </select>
+</mapper>

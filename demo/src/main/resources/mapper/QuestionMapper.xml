@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.demos.web.mapper.QuestionMapper">
+    <sql id="BaseColumnList">
+        id, question_set_id, content, type, difficulty, create_time, update_time
+    </sql>
+
+    <!-- 新增 -->
+    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.Question">
+        INSERT INTO question (question_set_id, content, type, difficulty, create_time, update_time)
+        VALUES (#{questionSetId}, #{content}, #{type}, #{difficulty}, NOW(), NOW())
+    </insert>
+
+    <!-- 删除 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM question WHERE id = #{id}
+    </delete>
+
+    <!-- 更新 -->
+    <update id="updateById" parameterType="com.example.demo.demos.web.pojo.Question">
+        UPDATE question
+        <set>
+            <if test="questionSetId != null">question_set_id = #{questionSetId},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="type != null">type = #{type},</if>
+            <if test="difficulty != null">difficulty = #{difficulty},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultType="com.example.demo.demos.web.pojo.Question">
+        SELECT <include refid="BaseColumnList"/> FROM question WHERE id = #{id}
+    </select>
+
+    <!-- 根据题库ID查询 -->
+    <select id="selectByQuestionSetId" resultType="com.example.demo.demos.web.pojo.Question">
+        SELECT <include refid="BaseColumnList"/> FROM question WHERE question_set_id = #{questionSetId}
+    </select>
+
+    <!-- 查询所有 -->
+    <select id="selectAll" resultType="com.example.demo.demos.web.pojo.Question">
+        SELECT <include refid="BaseColumnList"/> FROM question
+    </select>
+</mapper>

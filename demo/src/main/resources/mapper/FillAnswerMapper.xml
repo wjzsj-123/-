@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.demos.web.mapper.FillAnswerMapper">
+    <sql id="BaseColumnList">
+        id, question_id, answer, sort_order
+    </sql>
+
+    <!-- 新增单个答案 -->
+    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.FillAnswer">
+        INSERT INTO fill_answer (question_id, answer, sort_order)
+        VALUES (#{questionId}, #{answer}, #{sortOrder})
+    </insert>
+
+    <!-- 批量新增答案 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO fill_answer (question_id, answer, sort_order)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.questionId}, #{item.answer}, #{item.sortOrder})
+        </foreach>
+    </insert>
+
+    <!-- 根据ID删除 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM fill_answer WHERE id = #{id}
+    </delete>
+
+    <!-- 根据题目ID批量删除 -->
+    <delete id="deleteByQuestionId" parameterType="java.lang.Long">
+        DELETE FROM fill_answer WHERE question_id = #{questionId}
+    </delete>
+
+    <!-- 根据ID更新 -->
+    <update id="updateById" parameterType="com.example.demo.demos.web.pojo.FillAnswer">
+        UPDATE fill_answer
+        <set>
+            <if test="answer != null and answer != ''">answer = #{answer},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultType="com.example.demo.demos.web.pojo.FillAnswer">
+        SELECT <include refid="BaseColumnList"/> FROM fill_answer WHERE id = #{id}
+    </select>
+
+    <!-- 根据题目ID查询所有答案（按排序升序） -->
+    <select id="selectByQuestionId" resultType="com.example.demo.demos.web.pojo.FillAnswer">
+        SELECT <include refid="BaseColumnList"/> FROM fill_answer
+        WHERE question_id = #{questionId}
+        ORDER BY sort_order ASC
+    </select>
+
+    <!-- 根据题目ID和排序序号查询答案 -->
+    <select id="selectByQuestionIdAndSortOrder" resultType="com.example.demo.demos.web.pojo.FillAnswer">
+        SELECT <include refid="BaseColumnList"/> FROM fill_answer
+        WHERE question_id = #{questionId} AND sort_order = #{sortOrder}
+    </select>
+</mapper>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.demos.web.mapper.PaperMapper">
+    <sql id="BaseColumnList">
+        id, title, description, user_id, category, total_questions, create_time
+    </sql>
+
+    <!-- 新增试卷 -->
+    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.Paper">
+        INSERT INTO paper (title, description, user_id, category, total_questions, create_time)
+        VALUES (#{title}, #{description}, #{userId}, #{category}, #{totalQuestions}, #{createTime})
+    </insert>
+
+    <!-- 根据ID删除 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM paper WHERE id = #{id}
+    </delete>
+
+    <!-- 更新试卷信息 -->
+    <update id="updateById" parameterType="com.example.demo.demos.web.pojo.Paper">
+        UPDATE paper
+        <set>
+            <if test="title != null and title != ''">title = #{title},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="category != null and category != ''">category = #{category},</if>
+            <if test="totalQuestions != null">total_questions = #{totalQuestions},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据ID查询基础信息 -->
+    <select id="selectById" resultType="com.example.demo.demos.web.pojo.Paper">
+        SELECT <include refid="BaseColumnList"/> FROM paper WHERE id = #{id}
+    </select>
+
+    <!-- 根据ID查询试卷（关联题目列表） -->
+    <select id="selectWithQuestionsById" resultType="com.example.demo.demos.web.pojo.Paper">
+        SELECT <include refid="BaseColumnList"/> FROM paper WHERE id = #{id}
+        <!-- 关联查询通过ResultMap实现，此处简化 -->
+    </select>
+
+    <!-- 根据用户ID查询 -->
+    <select id="selectByUserId" resultType="com.example.demo.demos.web.pojo.Paper">
+        SELECT <include refid="BaseColumnList"/> FROM paper
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 查询所有试卷 -->
+    <select id="selectAll" resultType="com.example.demo.demos.web.pojo.Paper">
+        SELECT <include refid="BaseColumnList"/> FROM paper
+        ORDER BY create_time DESC
+    </select>
+</mapper>

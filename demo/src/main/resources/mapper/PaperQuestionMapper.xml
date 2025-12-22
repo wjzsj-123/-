@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.demos.web.mapper.PaperQuestionMapper">
+    <sql id="BaseColumnList">
+        id, paper_id, question_id, sort_order
+    </sql>
+
+    <!-- 新增单个关联关系 -->
+    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.PaperQuestion">
+        INSERT INTO paper_question (paper_id, question_id, sort_order)
+        VALUES (#{paperId}, #{questionId}, #{sortOrder})
+    </insert>
+
+    <!-- 批量新增关联关系 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO paper_question (paper_id, question_id, sort_order)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.paperId}, #{item.questionId}, #{item.sortOrder})
+        </foreach>
+    </insert>
+
+    <!-- 根据ID删除 -->
+    <delete id="deleteById" parameterType="java.lang.Long">
+        DELETE FROM paper_question WHERE id = #{id}
+    </delete>
+
+    <!-- 根据试卷ID批量删除 -->
+    <delete id="deleteByPaperId" parameterType="java.lang.Long">
+        DELETE FROM paper_question WHERE paper_id = #{paperId}
+    </delete>
+
+    <!-- 根据题目ID删除 -->
+    <delete id="deleteByQuestionId" parameterType="java.lang.Long">
+        DELETE FROM paper_question WHERE question_id = #{questionId}
+    </delete>
+
+    <!-- 更新排序序号 -->
+    <update id="updateSortOrder" parameterType="com.example.demo.demos.web.pojo.PaperQuestion">
+        UPDATE paper_question
+        SET sort_order = #{sortOrder}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 根据试卷ID查询所有关联题目 -->
+    <select id="selectByPaperId" resultType="com.example.demo.demos.web.pojo.PaperQuestion">
+        SELECT <include refid="BaseColumnList"/> FROM paper_question
+        WHERE paper_id = #{paperId}
+        ORDER BY sort_order ASC
+    </select>
+</mapper>
