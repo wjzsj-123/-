@@ -40,6 +40,7 @@
 <script setup>
 import { ref } from 'vue';
 import axios from 'axios';
+import VueRouter from "vue-router";
 
 // 组件中获取路由实例（如需编程式导航）
 const router = VueRouter.useRouter();
@@ -49,15 +50,15 @@ const form = ref({
 });
 const errorMsg = ref('');
 
+// 在Login.vue的handleLogin方法中
 const handleLogin = async () => {
   try {
-    errorMsg.value = '';
-    const response = await axios.post('/api/user/login', form.value);
-
+    const response = await axios.post('/api/user/login', form);
     if (response.data.code === 0) {
-      // 登录成功，存储用户信息
+      // 存储用户信息
       localStorage.setItem('userInfo', JSON.stringify(response.data.data));
-      await router.push('/'); // 跳转到首页
+      // 跳转到首页
+      await router.push('/home');
     } else {
       errorMsg.value = response.data.message || '登录失败';
     }

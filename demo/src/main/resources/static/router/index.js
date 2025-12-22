@@ -1,128 +1,83 @@
-// router/index.js
-const { createRouter, createWebHashHistory } = VueRouter; // 改为 Hash 模式
+// static/router/index.js
+// 适配 CDN 全局变量：从 VueRouter 全局对象中获取方法
+const { createRouter, createWebHistory } = VueRouter;
 
-// 登录/注册组件（保持不变，无需修改）
-const Login = {
-    template: `
-    <div class="login-container">
-      <h2>用户登录</h2>
-      <form @submit.prevent="handleLogin">
-        <div class="form-item">
-          <label>用户名：</label>
-          <input type="text" v-model="username" placeholder="请输入用户名" required>
-        </div>
-        <div class="form-item">
-          <label>密码：</label>
-          <input type="password" v-model="password" placeholder="请输入密码" required>
-        </div>
-        <button type="submit" class="login-btn">登录</button>
-        <p class="switch-btn">还没有账号？<a href="#/register">去注册</a></p>
-      </form>
-    </div>
-  `,
-    data() {
-        return {
-            username: '',
-            password: ''
-        };
-    },
-    methods: {
-        async handleLogin() {
-            try {
-                const res = await axios.post('/api/user/login', {
-                    username: this.username,
-                    password: this.password
-                });
-                if (res.data.code === 0) {
-                    alert('登录成功！');
-                    localStorage.setItem('userInfo', JSON.stringify(res.data.data));
-                } else {
-                    alert(res.data.message);
-                }
-            } catch (err) {
-                alert('登录失败：' + err.message);
-            }
-        }
-    }
-};
+// 导入组件：使用相对路径（基于 static 目录，./views/ 对应 static/views/）
+const Login = () => import('../views/Login.vue');
+const Register = () => import('../views/Register.vue');
+const Home = () => import('../views/Home.vue');
+const HomeContent = () => import('../views/HomeContent.vue');
+// 其他组件同理
+const QuestionSet = () => import('../views/QuestionSet.vue');
+const Paper = () => import('../views/Paper.vue');
+const UserProfile = () => import('../views/UserProfile.vue');
 
-const Register = {
-    template: `
-    <div class="login-container">
-      <h2>用户注册</h2>
-      <form @submit.prevent="handleRegister">
-        <div class="form-item">
-          <label>用户名：</label>
-          <input type="text" v-model="username" placeholder="请设置用户名" required>
-        </div>
-        <div class="form-item">
-          <label>密码：</label>
-          <input type="password" v-model="password" placeholder="请设置密码" required>
-        </div>
-        <div class="form-item">
-          <label>昵称：</label>
-          <input type="text" v-model="nickname" placeholder="请设置昵称（选填）">
-        </div>
-        <button type="submit" class="login-btn">注册</button>
-        <p class="switch-btn">已有账号？<a href="#/login">去登录</a></p>
-      </form>
-    </div>
-  `,
-    data() {
-        return {
-            username: '',
-            password: '',
-            nickname: ''
-        };
-    },
-    methods: {
-        async handleRegister() {
-            try {
-                if (this.password.length < 6) {
-                    alert('密码长度不能少于6位！');
-                    return;
-                }
-                const res = await axios.post('/api/user/register', {
-                    username: this.username,
-                    password: this.password,
-                    nickname: this.nickname
-                });
-                if (res.data.code === 0) {
-                    alert('注册成功！请登录');
-                    window.location.href = '#/login'; // 锚点跳转兼容 Hash 模式
-                } else {
-                    alert(res.data.message);
-                }
-            } catch (err) {
-                alert('注册失败：' + err.message);
-            }
-        }
-    }
-};
-
-// 路由配置（保持不变）
+// 路由配置（修正后，兼容 Spring Boot 静态资源）
 const routes = [
-    { path: '/login', component: Login },
-    { path: '/register', component: Register },
-    { path: '/', redirect: '/login' }
+    {
+        path: '/',
+        redirect: '/login' // 默认访问根路径跳转到登录页
+    },
+    {
+        path: '/login',
+        name: 'Login',
+        component: Login
+    },
+    {
+        path: '/register',
+        name: 'Register',
+        component: Register
+    },
+    {
+        path: '/home',
+        name: 'Home',
+        component: Home,
+        // 嵌套路由：子路径使用相对路径
+        children: [
+            {
+                path: '', // 匹配 /home
+                component: HomeContent
+            },
+            {
+                path: 'question-set', // 匹配 /home/question-set
+                component: QuestionSet
+            },
+            {
+                path: 'paper', // 匹配 /home/paper
+                component: Paper
+            },
+            {
+                path: 'user/profile', // 匹配 /home/user/profile
+                component: UserProfile
+            }
+        ]
+    }
 ];
 
-// 创建路由实例（使用 Hash 模式）
-window.appRouter = createRouter({
-    history: createWebHashHistory(), // 关键：改为 Hash 模式
+// 创建路由实例：使用 createWebHistory，base 适配 Spring Boot 根路径
+const router = createRouter({
+    history: createWebHistory(), // 无需配置 base，Spring Boot 已映射 / 到 static
     routes
 });
 
-// 路由守卫（保持不变）
-window.appRouter.beforeEach((to, from, next) => {
-    if (to.matched.some(record => record.meta.requiresAuth)) {
-        const userInfo = localStorage.getItem('userInfo');
-        if (!userInfo) {
-            next({ path: '/login', query: { redirect: to.fullPath } });
+// 全局路由守卫：统一校验登录状态
+router.beforeEach((to, from, next) => {
+    const userInfo = localStorage.getItem('userInfo');
+    // 需要登录的路径（适配嵌套路由路径）
+    const requireAuthPaths = ['/home', '/home/question-set', '/home/paper', '/home/user/profile'];
+
+    if (requireAuthPaths.includes(to.path)) {
+        // 需要登录：有用户信息放行，否则跳登录页
+        userInfo ? next() : next('/login');
+    } else {
+        // 无需登录：已登录用户访问登录/注册页，跳首页
+        if ((to.path === '/login' || to.path === '/register') && userInfo) {
+            next('/home');
         } else {
             next();
         }
-    } else {
-        next();
     }
 });
+
+// 导出路由实例（供 main.js 导入）
+export default router;
