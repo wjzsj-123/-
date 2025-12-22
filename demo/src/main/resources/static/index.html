@@ -4,20 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>题库系统</title>
-    <!-- 先引入 Vue 3 和 Vue Router 4（CDN 方式，无需构建工具，适配 Spring Boot 静态资源） -->
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://unpkg.com/vue-router@4/dist/vue-router.global.js"></script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
 </head>
 <body>
-<!-- 根容器：Vue 挂载目标 -->
 <div id="app"></div>
-
-<!-- 核心修正：
- 1. 添加 type="module" 支持 import/export
- 2. 路径移除 src/，直接使用 static 下的相对路径（Spring Boot 自动映射 / 到 static）
--->
-<script type="module" src="/router/index.js"></script>
-<script type="module" src="/main.js"></script>
+<!-- 核心修改：将 /src/main.js 改为 ./src/main.js（相对路径） -->
+<script type="module" src="./src/main.js"></script>
 </body>
 </html>
