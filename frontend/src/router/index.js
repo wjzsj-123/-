@@ -28,8 +28,8 @@ const routes = [
                 meta: { requiresAuth: true }
             },
             {
-                path: 'question-set/edit/:id',  // 对应完整路径 /home/question-set/edit/:id
-                component: () => import('@/views/QuestionSetForm.vue'),
+                path: 'question-set/:id', // 题库详情页（含题目管理）
+                component: () => import('@/views/QuestionSet.vue'),
                 meta: { requiresAuth: true }
             },
             { path: 'paper', component: Paper },
