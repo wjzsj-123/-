@@ -15,7 +15,10 @@ public interface QuestionMapper {
     // 更新题目信息
     int updateById(Question question);
 
-    // 根据ID查询题目
+    // 根据ID查询题目（包含关联的选项/答案）
+    Question selectByIdWithRelations(Long id);
+
+    // 根据ID查询题目（基础信息）
     Question selectById(Long id);
 
     // 根据题库ID查询题目
@@ -23,4 +26,7 @@ public interface QuestionMapper {
 
     // 查询所有题目
     List<Question> selectAll();
+
+    // 批量删除题目（根据题库ID）
+    int deleteByQuestionSetId(Long questionSetId);
 }
