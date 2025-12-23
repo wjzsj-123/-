@@ -45,4 +45,44 @@
     <select id="selectAll" resultType="com.example.demo.demos.web.pojo.Question">
         SELECT <include refid="BaseColumnList"/> FROM question
     </select>
+
+    <!-- 1. 批量删除题目（根据题库ID） -->
+    <delete id="deleteByQuestionSetId" parameterType="java.lang.Long">
+        DELETE FROM question
+        WHERE question_set_id = #{questionSetId}
+    </delete>
+
+    <!-- 2. 根据ID查询题目（包含关联的选项/答案） -->
+    <select id="selectByIdWithRelations" resultMap="QuestionWithRelationsResultMap">
+        SELECT
+        <include refid="BaseColumnList"/>
+        FROM question
+        WHERE id = #{id}
+    </select>
+
+    <!-- 结果映射：关联选项和答案 -->
+    <resultMap id="QuestionWithRelationsResultMap" type="com.example.demo.demos.web.pojo.Question">
+        <!-- 基础字段映射 -->
+        <id column="id" property="id"/>
+        <result column="question_set_id" property="questionSetId"/>
+        <result column="content" property="content"/>
+        <result column="type" property="type"/>
+        <result column="difficulty" property="difficulty"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+
+        <!-- 关联选择题选项（一对多） -->
+        <collection property="options"
+                    column="id"
+                    select="com.example.demo.demos.web.mapper.QuestionOptionMapper.selectByQuestionId"
+                    javaType="java.util.List"
+                    ofType="com.example.demo.demos.web.pojo.QuestionOption"/>
+
+        <!-- 关联填空题答案（一对多） -->
+        <collection property="fillAnswers"
+                    column="id"
+                    select="com.example.demo.demos.web.mapper.FillAnswerMapper.selectByQuestionId"
+                    javaType="java.util.List"
+                    ofType="com.example.demo.demos.web.pojo.FillAnswer"/>
+    </resultMap>
 </mapper>
