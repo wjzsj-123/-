@@ -14,37 +14,65 @@ public class QuestionSetServiceImpl implements QuestionSetService {
     private QuestionSetMapper questionSetMapper;
 
     @Override
-    public int addQuestionSet(QuestionSet questionSet) {
+    public int createQuestionSet(QuestionSet questionSet) {
+        // 校验必要参数
+        if (questionSet == null) {
+            throw new IllegalArgumentException("题目集信息不能为空");
+        }
+        if (questionSet.getUserId() == null) {
+            throw new IllegalArgumentException("用户ID不能为空");
+        }
+        if (questionSet.getName() == null || questionSet.getName().trim().isEmpty()) {
+            throw new IllegalArgumentException("题目集名称不能为空");
+        }
         return questionSetMapper.insert(questionSet);
     }
 
     @Override
-    public int removeQuestionSet(Long id) {
+    public int deleteQuestionSet(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("题目集ID不能为空");
+        }
         return questionSetMapper.deleteById(id);
     }
 
     @Override
-    public int modifyQuestionSet(QuestionSet questionSet) {
+    public int updateQuestionSet(QuestionSet questionSet) {
+        if (questionSet == null) {
+            throw new IllegalArgumentException("题目集信息不能为空");
+        }
+        if (questionSet.getId() == null) {
+            throw new IllegalArgumentException("题目集ID不能为空");
+        }
         return questionSetMapper.updateById(questionSet);
     }
 
     @Override
     public QuestionSet getQuestionSetById(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("题目集ID不能为空");
+        }
         return questionSetMapper.selectById(id);
     }
 
     @Override
-    public List<QuestionSet> getByUserId(Long userId) {
+    public List<QuestionSet> getQuestionSetsByUserId(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("用户ID不能为空");
+        }
         return questionSetMapper.selectByUserId(userId);
     }
 
     @Override
-    public List<QuestionSet> getByCategory(String category) {
+    public List<QuestionSet> getQuestionSetsByCategory(String category) {
+        if (category == null || category.trim().isEmpty()) {
+            throw new IllegalArgumentException("分类不能为空");
+        }
         return questionSetMapper.selectByCategory(category);
     }
 
     @Override
-    public List<QuestionSet> getAll() {
+    public List<QuestionSet> getAllQuestionSets() {
         return questionSetMapper.selectAll();
     }
 }

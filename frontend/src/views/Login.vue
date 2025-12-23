@@ -84,81 +84,106 @@ const handleLogin = async () => {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f0f2f5;
+  padding: 15px; /* 减少外间距 */
 }
 
 .auth-card {
   width: 100%;
-  max-width: 400px;
-  padding: 2rem;
+  max-width: 600px; /* 增大最大宽度 */
+  padding: 3.5rem; /* 增加内边距 */
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  width: 90vw; /* 占屏幕宽度90% */
+  max-width: 650px;
 }
 
 h2 {
   text-align: center;
-  margin-bottom: 1.5rem;
-  color: #333;
+  margin-bottom: 2.5rem;
+  color: #1a1a1a;
+  font-size: 2.2rem; /* 增大标题 */
+  font-weight: 600;
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 2rem; /* 增加表单间距 */
 }
 
 label {
   display: block;
-  margin-bottom: 0.5rem;
-  color: #666;
+  margin-bottom: 1rem;
+  color: #4e5969;
+  font-size: 1.3rem; /* 增大标签 */
+  font-weight: 500;
 }
 
 input {
   width: 100%;
-  padding: 0.8rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-input:focus {
-  outline: none;
-  border-color: #42b983;
+  padding: 1.2rem; /* 增大输入框内边距 */
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  font-size: 1.3rem; /* 增大输入文字 */
+  transition: all 0.3s ease;
+  height: 60px; /* 固定高度增加 */
 }
 
 .error-message {
-  color: #ff4444;
-  margin: 1rem 0;
+  color: #ff4d4f;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border-radius: 6px;
+  background-color: #fff2f0;
   text-align: center;
+  font-size: 1.2rem; /* 增大错误提示 */
 }
 
 .auth-btn {
   width: 100%;
-  padding: 0.8rem;
+  padding: 1.2rem; /* 增大按钮内边距 */
   background-color: #42b983;
   color: white;
   border: none;
-  border-radius: 4px;
-  font-size: 1rem;
+  border-radius: 8px;
+  font-size: 1.3rem; /* 增大按钮文字 */
+  font-weight: 500;
   cursor: pointer;
   transition: background-color 0.3s;
-}
-
-.auth-btn:hover {
-  background-color: #359e75;
+  margin-top: 1.5rem;
+  height: 60px; /* 固定按钮高度 */
 }
 
 .auth-switch {
   text-align: center;
-  margin-top: 1rem;
-  color: #666;
+  margin-top: 2rem;
+  color: #667085;
+  font-size: 1.2rem; /* 增大切换文字 */
 }
 
 .auth-switch a {
   color: #42b983;
   text-decoration: none;
+  font-weight: 500;
+  margin-left: 6px;
+  font-size: 1.2rem;
 }
 
-.auth-switch a:hover {
-  text-decoration: underline;
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .auth-card {
+    padding: 2.5rem 1.5rem;
+    width: 95vw; /* 小屏幕占95%宽度 */
+  }
+
+  h2 {
+    font-size: 2rem;
+  }
+
+  input, .auth-btn {
+    padding: 1rem;
+    font-size: 1.2rem;
+    height: 55px;
+  }
 }
 </style>

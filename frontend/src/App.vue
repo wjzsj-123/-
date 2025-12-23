@@ -11,8 +11,9 @@ console.log('App 根组件已加载');
 <style scoped>
 #app-container {
   width: 100%;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow: auto; /* 改为auto允许滚动 */
+  padding: 0 20px; /* 增加左右内边距 */
 }
 
 * {
@@ -23,5 +24,20 @@ console.log('App 根组件已加载');
 
 body {
   font-family: "Microsoft YaHei", sans-serif;
+  font-size: 16px; /* 基础字体大小调整 */
+  background-color: #f9f9f9; /* 增加背景色区分内容区 */
+}
+
+/* 响应式基础设置 */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 1200px) {
+  html {
+    font-size: 18px;
+  }
 }
 </style>

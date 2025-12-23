@@ -6,15 +6,18 @@
         id, name, description, category, user_id, create_time, update_time
     </sql>
 
+    <!-- 新增题库 -->
     <insert id="insert" parameterType="com.example.demo.demos.web.pojo.QuestionSet">
         INSERT INTO question_set (name, description, category, user_id, create_time, update_time)
         VALUES (#{name}, #{description}, #{category}, #{userId}, NOW(), NOW())
     </insert>
 
+    <!-- 根据ID删除题库 -->
     <delete id="deleteById" parameterType="java.lang.Long">
         DELETE FROM question_set WHERE id = #{id}
     </delete>
 
+    <!-- 根据ID更新题库 -->
     <update id="updateById" parameterType="com.example.demo.demos.web.pojo.QuestionSet">
         UPDATE question_set
         <set>
@@ -26,19 +29,48 @@
         WHERE id = #{id}
     </update>
 
+    <!-- 根据ID查询题库 -->
     <select id="selectById" resultType="com.example.demo.demos.web.pojo.QuestionSet">
         SELECT <include refid="BaseColumnList"/> FROM question_set WHERE id = #{id}
     </select>
 
+    <!-- 根据用户ID查询题库列表 -->
     <select id="selectByUserId" resultType="com.example.demo.demos.web.pojo.QuestionSet">
-        SELECT <include refid="BaseColumnList"/> FROM question_set WHERE user_id = #{userId}
+        SELECT <include refid="BaseColumnList"/> FROM question_set
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
     </select>
 
+    <!-- 根据分类查询题库列表 -->
     <select id="selectByCategory" resultType="com.example.demo.demos.web.pojo.QuestionSet">
-        SELECT <include refid="BaseColumnList"/> FROM question_set WHERE category = #{category}
+        SELECT <include refid="BaseColumnList"/> FROM question_set
+        WHERE category = #{category}
+        ORDER BY create_time DESC
     </select>
 
+    <!-- 查询所有题库 -->
     <select id="selectAll" resultType="com.example.demo.demos.web.pojo.QuestionSet">
         SELECT <include refid="BaseColumnList"/> FROM question_set
+        ORDER BY create_time DESC
     </select>
+
+    <!-- 补充：根据名称模糊查询题库 -->
+    <select id="selectByNameLike" resultType="com.example.demo.demos.web.pojo.QuestionSet">
+        SELECT <include refid="BaseColumnList"/> FROM question_set
+        WHERE name LIKE CONCAT('%', #{name}, '%')
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 补充：统计用户创建的题库数量 -->
+    <select id="countByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM question_set WHERE user_id = #{userId}
+    </select>
+
+    <!-- 补充：批量删除题库 -->
+    <delete id="batchDeleteByIds" parameterType="java.util.List">
+        DELETE FROM question_set WHERE id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
 </mapper>

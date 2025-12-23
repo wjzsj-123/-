@@ -12,11 +12,26 @@ const routes = [
     { path: '/login', name: 'Login', component: Login },
     { path: '/register', name: 'Register', component: Register },
     {
-        path: '/home',
+        path: '/home',  // 父路由路径
         component: Home,
         children: [
             { path: '', name: 'Home', component: HomeContent },
-            { path: 'question-set', component: QuestionSet },
+            // 子路由路径不需要带 /home 前缀（相对路径）
+            {
+                path: 'question-set',  // 对应完整路径 /home/question-set
+                component: () => import('@/views/QuestionSetList.vue'),
+                meta: { requiresAuth: true }
+            },
+            {
+                path: 'question-set/add',  // 对应完整路径 /home/question-set/add
+                component: () => import('@/views/QuestionSetForm.vue'),
+                meta: { requiresAuth: true }
+            },
+            {
+                path: 'question-set/edit/:id',  // 对应完整路径 /home/question-set/edit/:id
+                component: () => import('@/views/QuestionSetForm.vue'),
+                meta: { requiresAuth: true }
+            },
             { path: 'paper', component: Paper },
             { path: 'user/profile', component: UserProfile }
         ]

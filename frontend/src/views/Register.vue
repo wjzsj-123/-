@@ -124,69 +124,85 @@ const handleRegister = async () => {
 </script>
 
 <style scoped>
-/* 样式与之前保持一致 */
+/* 与Login.vue样式完全一致，确保布局统一 */
 .auth-container {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f0f2f5;
+  padding: 15px;
 }
 
 .auth-card {
   width: 100%;
-  max-width: 400px;
-  padding: 2rem;
+  padding: 3.5rem;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  width: 90vw;
+  max-width: 650px;
 }
 
 h2 {
   text-align: center;
-  margin-bottom: 1.5rem;
-  color: #333;
+  margin-bottom: 2.5rem;
+  color: #1a1a1a;
+  font-size: 2.2rem;
+  font-weight: 600;
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
 }
 
 label {
   display: block;
-  margin-bottom: 0.5rem;
-  color: #666;
+  margin-bottom: 1rem;
+  color: #4e5969;
+  font-size: 1.3rem;
+  font-weight: 500;
 }
 
 input {
   width: 100%;
-  padding: 0.8rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
+  padding: 1.2rem;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  font-size: 1.3rem;
+  transition: all 0.3s ease;
+  height: 60px;
 }
 
 input:focus {
   outline: none;
   border-color: #42b983;
+  box-shadow: 0 0 0 3px rgba(66, 185, 131, 0.2);
 }
 
 .error-message {
-  color: #ff4444;
-  margin: 1rem 0;
+  color: #ff4d4f;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border-radius: 6px;
+  background-color: #fff2f0;
   text-align: center;
+  font-size: 1.2rem;
 }
 
 .auth-btn {
   width: 100%;
-  padding: 0.8rem;
+  padding: 1.2rem;
   background-color: #42b983;
   color: white;
   border: none;
-  border-radius: 4px;
-  font-size: 1rem;
+  border-radius: 8px;
+  font-size: 1.3rem;
+  font-weight: 500;
   cursor: pointer;
   transition: background-color 0.3s;
+  margin-top: 1.5rem;
+  height: 60px;
 }
 
 .auth-btn:hover {
@@ -195,16 +211,37 @@ input:focus {
 
 .auth-switch {
   text-align: center;
-  margin-top: 1rem;
-  color: #666;
+  margin-top: 2rem;
+  color: #667085;
+  font-size: 1.2rem;
 }
 
 .auth-switch a {
   color: #42b983;
   text-decoration: none;
+  font-weight: 500;
+  margin-left: 6px;
+  font-size: 1.2rem;
 }
 
 .auth-switch a:hover {
   text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .auth-card {
+    padding: 2.5rem 1.5rem;
+    width: 95vw;
+  }
+
+  h2 {
+    font-size: 2rem;
+  }
+
+  input, .auth-btn {
+    padding: 1rem;
+    font-size: 1.2rem;
+    height: 55px;
+  }
 }
 </style>
