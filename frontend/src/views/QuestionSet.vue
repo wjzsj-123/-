@@ -158,11 +158,42 @@ const handleDelete = async (id) => {
   }
 };
 
-// 题目保存成功后回调
-const onQuestionSaved = () => {
-  showQuestionForm.value = false;
-  currentEditQuestion.value = null;
-  getQuestions(); // 重新加载题目列表
+// 题目保存成功后回调（修改原方法）
+const onQuestionSaved = async (questionData) => {
+  try {
+    // 1. 发送请求到后端新增/编辑题目接口
+    const response = await fetch('/api/question', {
+      method: questionData.id ? 'PUT' : 'POST', // 有id则为编辑（PUT），无id则为新增（POST）
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        ...questionData,
+        questionSetId: questionSetId.value, // 确保关联当前题库ID
+        // 转换前端类型为后端需要的格式（例如：前端type是字符串，后端可能需要数字）
+        type: questionData.type === 'single' ? 1 :
+            questionData.type === 'multiple' ? 2 :
+                questionData.type === 'fill' ? 3 : null,
+        difficulty: questionData.difficulty === 'easy' ? 1 :
+            questionData.difficulty === 'medium' ? 2 :
+                questionData.difficulty === 'hard' ? 3 : null
+      })
+    });
+
+    const result = await response.json();
+    if (result.code === 0) {
+      // 2. 操作成功后关闭弹窗并刷新列表
+      showQuestionForm.value = false;
+      currentEditQuestion.value = null;
+      getQuestions(); // 重新加载题目列表
+      alert(questionData.id ? '编辑成功' : '新增成功');
+    } else {
+      alert(result.message || '操作失败');
+    }
+  } catch (err) {
+    console.error('题目保存失败:', err);
+    alert('网络错误，保存失败');
+  }
 };
 
 // 页面加载时初始化数据

@@ -19,6 +19,7 @@ public class QuestionController {
     @PostMapping
     public Result addQuestion(@RequestBody Question question) {
         try {
+            System.out.println("正在插入" + question);
             int count = questionService.addQuestion(question);
             return Result.success("新增题目成功", count);
         } catch (IllegalArgumentException e) {

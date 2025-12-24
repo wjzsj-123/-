@@ -20,8 +20,7 @@
         <label for="type">题目类型 <span class="required">*</span></label>
         <select id="type" v-model="form.type" required>
           <option value="">请选择类型</option>
-          <option value="single">单选题</option>
-          <option value="multiple">多选题</option>
+          <option value="select">选择题</option>
           <option value="fill">填空题</option>
         </select>
       </div>
@@ -38,7 +37,7 @@
       </div>
 
       <!-- 选项区域（根据题型动态显示） -->
-      <div v-if="form.type === 'single' || form.type === 'multiple'" class="options-group">
+      <div v-if="form.type === '1'" class="options-group">
         <label>选项设置</label>
         <div v-for="(option, index) in form.options" :key="index" class="option-item">
           <input
@@ -68,7 +67,7 @@
       </div>
 
       <!-- 填空题答案区域 -->
-      <div v-if="form.type === 'fill'" class="fill-answers-group">
+      <div v-if="form.type === '2'" class="fill-answers-group">
         <label>答案设置</label>
         <div v-for="(answer, index) in form.fillAnswers" :key="index" class="answer-item">
           <input
@@ -98,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, toRefs } from 'vue';
+import { ref } from 'vue';
 import { defineProps, defineEmits } from 'vue';
 
 // 接收外部参数
@@ -123,9 +122,9 @@ const form = ref({
   id: props.question.id || null,
   questionSetId: props.question.questionSetId || null, // 关联的题库ID
   content: props.question.content || '',
-  type: props.question.type || '',
-  difficulty: props.question.difficulty || '',
-  options: props.question.options || [{ content: '', isCorrect: 0 }],
+  type: props.question.type?.toString() || '', // 转换为字符串用于下拉框匹配
+  difficulty: props.question.difficulty?.toString() || '', // 转换为字符串用于下拉框匹配
+  options: props.question.options || [{ content: '', isCorrect: 0, sortOrder: 1 }],
   fillAnswers: props.question.fillAnswers || [{ answer: '', sortOrder: 1 }]
 });
 
@@ -166,7 +165,7 @@ const removeAnswer = (index) => {
 
 // 提交表单
 const handleSubmit = () => {
-  // 简单校验
+  // 1. 基础校验
   if (!form.value.content.trim()) {
     alert('请输入题目内容');
     return;
@@ -180,8 +179,75 @@ const handleSubmit = () => {
     return;
   }
 
-  // 提交数据给父组件
-  emit('save', { ...form.value });
+  // 2. 校验选择题选项（至少2个，且必须有正确答案）
+  if (form.value.type === 'single' || form.value.type === 'multiple') {
+    if (form.value.options.length < 2) {
+      alert('选择题至少需要2个选项');
+      return;
+    }
+    const hasCorrect = form.value.options.some(opt => opt.isCorrect === 1);
+    if (!hasCorrect) {
+      alert('选择题必须设置正确答案');
+      return;
+    }
+  }
+
+  // 3. 校验填空题答案（至少1个，且内容不为空）
+  if (form.value.type === 'fill') {
+    if (form.value.fillAnswers.length < 1) {
+      alert('填空题至少需要1个空');
+      return;
+    }
+    const hasEmptyAnswer = form.value.fillAnswers.some(ans => !ans.answer.trim());
+    if (hasEmptyAnswer) {
+      alert('填空题答案不能为空');
+      return;
+    }
+  }
+
+  // 4. 转换 type 为后端需要的整数（关键步骤）
+  let typeInt;
+  switch (form.value.type) {
+    case 'select':
+      typeInt = 1; // 单选题对应整数1
+      break;
+    case 'fill':
+      typeInt = 2; // 填空题对应整数3
+      break;
+    default:
+      alert('题目类型错误');
+      return;
+  }
+
+  // 5. 转换 difficulty 为后端需要的整数（关键步骤）
+  let difficultyInt;
+  switch (form.value.difficulty) {
+    case 'easy':
+      difficultyInt = 1; // 简单对应整数1
+      break;
+    case 'medium':
+      difficultyInt = 2; // 中等对应整数2
+      break;
+    case 'hard':
+      difficultyInt = 3; // 困难对应整数3
+      break;
+    default:
+      alert('难度级别错误');
+      return;
+  }
+
+  // 6. 构建提交数据（替换为转换后的整数）
+  const submitData = {
+    ...form.value,
+    type: typeInt,       // 替换为整数类型
+    difficulty: difficultyInt, // 替换为整数类型
+    // 清除无关字段（选择题不需要fillAnswers，填空题不需要options）
+    ...(form.value.type !== 'fill' && { fillAnswers: null }),
+    ...(form.value.type === 'fill' && { options: null })
+  };
+
+  // 7. 提交给父组件
+  emit('save', submitData);
 };
 
 // 取消操作
@@ -191,6 +257,7 @@ const handleCancel = () => {
 </script>
 
 <style scoped>
+/* 样式部分保持不变 */
 .question-form {
   padding: 1.5rem;
   border-radius: 8px;
