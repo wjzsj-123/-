@@ -8,9 +8,25 @@
     </sql>
 
     <!-- 新增 -->
-    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.Question">
-        INSERT INTO question (question_set_id, content, type, difficulty, create_time, update_time)
-        VALUES (#{questionSetId}, #{content}, #{type}, #{difficulty}, NOW(), NOW())
+    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.Question"
+            useGeneratedKeys="true"
+            keyProperty="id"
+            keyColumn="id">
+        INSERT INTO question (
+            question_set_id,
+            content,
+            type,
+            difficulty,
+            create_time,
+            update_time
+        ) VALUES (
+        #{questionSetId},
+        #{content},
+        #{type},
+        #{difficulty},
+        NOW(),
+        NOW()
+        )
     </insert>
 
     <!-- 删除 -->

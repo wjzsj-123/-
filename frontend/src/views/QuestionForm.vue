@@ -20,7 +20,7 @@
         <label for="type">题目类型 <span class="required">*</span></label>
         <select id="type" v-model="form.type" required>
           <option value="">请选择类型</option>
-          <option value="select">选择题</option>
+          <option value="option">选择题</option>
           <option value="fill">填空题</option>
         </select>
       </div>
@@ -36,8 +36,8 @@
         </select>
       </div>
 
-      <!-- 选项区域（根据题型动态显示） -->
-      <div v-if="form.type === '1'" class="options-group">
+      <!-- 选项区域（根据题型动态显示：匹配下拉框的 "option" 值） -->
+      <div v-if="form.type === 'option'" class="options-group">
         <label>选项设置</label>
         <div v-for="(option, index) in form.options" :key="index" class="option-item">
           <input
@@ -66,8 +66,8 @@
         <button type="button" class="add-btn" @click="addOption">+ 添加选项</button>
       </div>
 
-      <!-- 填空题答案区域 -->
-      <div v-if="form.type === '2'" class="fill-answers-group">
+      <!-- 填空题答案区域（根据题型动态显示：匹配下拉框的 "fill" 值） -->
+      <div v-if="form.type === 'fill'" class="fill-answers-group">
         <label>答案设置</label>
         <div v-for="(answer, index) in form.fillAnswers" :key="index" class="answer-item">
           <input
@@ -117,13 +117,13 @@ const props = defineProps({
 // 定义事件
 const emit = defineEmits(['save', 'cancel']);
 
-// 表单数据
+// 表单数据（初始化时匹配下拉框的字符串值，而非数字）
 const form = ref({
   id: props.question.id || null,
   questionSetId: props.question.questionSetId || null, // 关联的题库ID
   content: props.question.content || '',
-  type: props.question.type?.toString() || '', // 转换为字符串用于下拉框匹配
-  difficulty: props.question.difficulty?.toString() || '', // 转换为字符串用于下拉框匹配
+  type: props.question.type === 1 ? 'option' : (props.question.type === 2 ? 'fill' : ''), // 编辑时映射为下拉框对应的字符串
+  difficulty: props.question.difficulty === 1 ? 'easy' : (props.question.difficulty === 2 ? 'medium' : (props.question.difficulty === 3 ? 'hard' : '')),
   options: props.question.options || [{ content: '', isCorrect: 0, sortOrder: 1 }],
   fillAnswers: props.question.fillAnswers || [{ answer: '', sortOrder: 1 }]
 });
@@ -180,7 +180,7 @@ const handleSubmit = () => {
   }
 
   // 2. 校验选择题选项（至少2个，且必须有正确答案）
-  if (form.value.type === 'single' || form.value.type === 'multiple') {
+  if (form.value.type === 'option') {
     if (form.value.options.length < 2) {
       alert('选择题至少需要2个选项');
       return;
@@ -188,6 +188,12 @@ const handleSubmit = () => {
     const hasCorrect = form.value.options.some(opt => opt.isCorrect === 1);
     if (!hasCorrect) {
       alert('选择题必须设置正确答案');
+      return;
+    }
+    // 校验选项内容不能为空
+    const hasEmptyOption = form.value.options.some(opt => !opt.content.trim());
+    if (hasEmptyOption) {
+      alert('选择题选项内容不能为空');
       return;
     }
   }
@@ -205,38 +211,38 @@ const handleSubmit = () => {
     }
   }
 
-  // 4. 转换 type 为后端需要的整数（关键步骤）
+  // 4. 转换 type 为后端需要的整数
   let typeInt;
   switch (form.value.type) {
-    case 'select':
-      typeInt = 1; // 单选题对应整数1
+    case 'option':
+      typeInt = 1; // 选择题对应后端整数1
       break;
     case 'fill':
-      typeInt = 2; // 填空题对应整数3
+      typeInt = 2; // 填空题对应后端整数2
       break;
     default:
       alert('题目类型错误');
       return;
   }
 
-  // 5. 转换 difficulty 为后端需要的整数（关键步骤）
+  // 5. 转换 difficulty 为后端需要的整数
   let difficultyInt;
   switch (form.value.difficulty) {
     case 'easy':
-      difficultyInt = 1; // 简单对应整数1
+      difficultyInt = 1; // 简单对应后端整数1
       break;
     case 'medium':
-      difficultyInt = 2; // 中等对应整数2
+      difficultyInt = 2; // 中等对应后端整数2
       break;
     case 'hard':
-      difficultyInt = 3; // 困难对应整数3
+      difficultyInt = 3; // 困难对应后端整数3
       break;
     default:
       alert('难度级别错误');
       return;
   }
 
-  // 6. 构建提交数据（替换为转换后的整数）
+  // 6. 构建提交数据（替换为转换后的整数，清理无关字段）
   const submitData = {
     ...form.value,
     type: typeInt,       // 替换为整数类型
@@ -245,6 +251,9 @@ const handleSubmit = () => {
     ...(form.value.type !== 'fill' && { fillAnswers: null }),
     ...(form.value.type === 'fill' && { options: null })
   };
+
+  // 调试：打印提交数据
+  console.log('最终提交数据：', submitData);
 
   // 7. 提交给父组件
   emit('save', submitData);
