@@ -36,10 +36,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, watchEffect } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 
 const router = useRouter();
+const route = useRoute();
 const userInfo = ref({});
 
 // 页面加载时获取用户信息
@@ -49,6 +50,17 @@ onMounted(() => {
     userInfo.value = JSON.parse(storedUser);
   } else {
     // 如果未登录，跳转回登录页
+    router.push('/login');
+  }
+});
+
+// 使用watchEffect监控路由变化和localStorage变化
+watchEffect(() => {
+  const storedUser = localStorage.getItem('userInfo');
+  if (storedUser) {
+    userInfo.value = JSON.parse(storedUser);
+  } else if (route.path !== '/login' && route.path !== '/register') {
+    // 未登录且不在登录/注册页时跳转
     router.push('/login');
   }
 });

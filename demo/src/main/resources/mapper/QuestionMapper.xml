@@ -101,4 +101,18 @@
                     javaType="java.util.List"
                     ofType="com.example.demo.demos.web.pojo.FillAnswer"/>
     </resultMap>
+
+    <!-- 新增查询题目关联的选项（关联QuestionOption表） -->
+    <select id="selectOptionsByQuestionId" parameterType="Long" resultType="com.example.demo.demos.web.pojo.QuestionOption">
+        SELECT * FROM question_option
+        WHERE question_id = #{questionId}
+        ORDER BY sort_order ASC
+    </select>
+
+    <!-- 新增查询题目关联的答案（关联FillAnswer表） -->
+    <select id="selectFillAnswersByQuestionId" parameterType="Long" resultType="com.example.demo.demos.web.pojo.FillAnswer">
+        SELECT * FROM fill_answer
+        WHERE question_id = #{questionId}
+        ORDER BY sort_order ASC
+    </select>
 </mapper>

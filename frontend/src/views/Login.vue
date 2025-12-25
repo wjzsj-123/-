@@ -65,9 +65,14 @@ const handleLogin = async () => {
     const result = await response.json()
 
     if (result.code === 0) {
-      // 登录成功，存储用户信息并跳转首页
+      // 登录成功后先清除可能的旧数据
+      localStorage.removeItem('userInfo')
+      // 存储用户信息
       localStorage.setItem('userInfo', JSON.stringify(result.data))
-      await router.push('/') // 使用路由实例跳转
+      // 强制刷新路由以确保Home组件重新加载
+      await router.push('/home')
+      // 可选：如果仍然有问题，可以添加页面刷新
+      // window.location.reload()
     } else {
       errorMsg.value = result.message || '登录失败'
     }

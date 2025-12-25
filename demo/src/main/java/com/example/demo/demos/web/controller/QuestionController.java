@@ -61,4 +61,18 @@ public class QuestionController {
             return Result.error("更新题目失败：" + e.getMessage());
         }
     }
+
+    // 根据ID查询题目详情（含选项/答案）
+    @GetMapping("/{id}")
+    public Result getQuestionById(@PathVariable Long id) {
+        try {
+            if (id == null) {
+                return Result.error("题目ID不能为空");
+            }
+            Question question = questionService.getQuestionById(id);
+            return question != null ? Result.success("查询成功", question) : Result.error("未找到该题目");
+        } catch (Exception e) {
+            return Result.error("查询题目失败：" + e.getMessage());
+        }
+    }
 }

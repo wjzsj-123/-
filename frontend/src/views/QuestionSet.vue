@@ -1,3 +1,4 @@
+<!--QuestionSet.vue-->
 <template>
   <div class="question-set-detail">
     <!-- 题库基本信息 -->
@@ -136,9 +137,25 @@ const getDifficultyText = (difficulty) => {
 };
 
 // 编辑题目
-const handleEdit = (question) => {
-  currentEditQuestion.value = { ...question };
-  showQuestionForm.value = true;
+const handleEdit = async (question) => {
+  try {
+    // 1. 先从后端获取最新的题目详情（确保编辑的数据是最新的）
+    const response = await fetch(`/api/question/${question.id}`);
+    const result = await response.json();
+
+    if (result.code === 0) {
+      // 2. 成功获取后打开编辑表单，并填充数据
+      // 深拷贝避免直接修改原数据
+      currentEditQuestion.value = JSON.parse(JSON.stringify(result.data));
+      showQuestionForm.value = true;
+    } else {
+      alert(result.message || '获取题目详情失败，无法编辑');
+      console.error('获取编辑数据失败:', result.message);
+    }
+  } catch (err) {
+    console.error('编辑操作失败:', err);
+    alert('网络错误，无法加载编辑数据');
+  }
 };
 
 // 删除题目
@@ -179,7 +196,9 @@ const onQuestionSaved = async (questionData) => {
       // 2. 操作成功后关闭弹窗并刷新列表
       showQuestionForm.value = false;
       currentEditQuestion.value = null;
-      getQuestions(); // 重新加载题目列表
+      // 3. 局部刷新：重新加载题库详情和题目列表（核心修改）
+      await getQuestionSetDetail(); // 刷新题库信息
+      await getQuestions(); // 刷新题目列表
       alert(questionData.id ? '编辑成功' : '新增成功');
     } else {
       alert(result.message || '操作失败');

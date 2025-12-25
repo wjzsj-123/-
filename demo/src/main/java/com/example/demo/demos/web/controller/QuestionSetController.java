@@ -51,13 +51,19 @@ public class QuestionSetController {
     /**
      * 更新题目集信息
      */
-    @PutMapping
-    public Result updateQuestionSet(@RequestBody QuestionSet questionSet) {
+    @PutMapping("/{id}")
+    public Result updateQuestionSet(
+            @PathVariable Long id,
+            @RequestBody QuestionSet questionSet) {
         try {
+            System.out.println("正在更新" + questionSet);
+            if (id == null || !id.equals(questionSet.getId())) {
+                return Result.error("ID参数不匹配");
+            }
             int count = questionSetService.updateQuestionSet(questionSet);
             return count > 0 ?
-                    Result.success("题目集更新成功") :
-                    Result.error("未找到该题目集或无变更");
+                    Result.success("题库更新成功") :
+                    Result.error("未找到该题库或无变更");
         } catch (IllegalArgumentException e) {
             return Result.error(e.getMessage());
         } catch (Exception e) {
@@ -120,6 +126,54 @@ public class QuestionSetController {
         try {
             List<QuestionSet> questionSets = questionSetService.getAllQuestionSets();
             return Result.success("查询成功", questionSets);
+        } catch (Exception e) {
+            return Result.error("查询异常：" + e.getMessage());
+        }
+    }
+
+    /*
+     *  按用户id和type查找
+     */
+    @GetMapping("/user/{userId}/category/{category}")
+    public Result getQuestionSetsByUserIdAndCategory(
+            @PathVariable Long userId,
+            @PathVariable String category) {
+        try {
+            List<QuestionSet> questionSets = questionSetService.getQuestionSetsByUserIdAndCategory(userId, category);
+            return Result.success("查询成功", questionSets);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("查询异常：" + e.getMessage());
+        }
+    }
+
+    // 新增接口：根据用户ID和名称模糊查询题目集
+    @GetMapping("/user/{userId}/search")
+    public Result searchQuestionSetsByUserIdAndName(
+            @PathVariable Long userId,
+            @RequestParam String name) {
+        try {
+            List<QuestionSet> questionSets = questionSetService.searchQuestionSetsByUserIdAndName(userId, name);
+            return Result.success("查询成功", questionSets);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("查询异常：" + e.getMessage());
+        }
+    }
+
+    // 新增接口：综合查询（用户ID + 分类 + 名称模糊查询）
+    @GetMapping("/user/{userId}/filter")
+    public Result filterQuestionSets(
+            @PathVariable Long userId,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String name) {
+        try {
+            List<QuestionSet> questionSets = questionSetService.filterQuestionSets(userId, category, name);
+            return Result.success("查询成功", questionSets);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
         } catch (Exception e) {
             return Result.error("查询异常：" + e.getMessage());
         }

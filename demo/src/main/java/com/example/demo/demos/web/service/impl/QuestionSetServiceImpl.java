@@ -75,4 +75,50 @@ public class QuestionSetServiceImpl implements QuestionSetService {
     public List<QuestionSet> getAllQuestionSets() {
         return questionSetMapper.selectAll();
     }
+
+    /**
+     * 根据用户ID和分类查询题目集
+     */
+    @Override
+    public List<QuestionSet> getQuestionSetsByUserIdAndCategory(Long userId, String category) {
+        // 参数校验
+        if (userId == null) {
+            throw new IllegalArgumentException("用户ID不能为空");
+        }
+        if (category == null || category.trim().isEmpty()) {
+            throw new IllegalArgumentException("分类不能为空");
+        }
+        return questionSetMapper.selectByUserIdAndCategory(userId, category);
+    }
+
+    /**
+     * 根据用户ID和名称模糊查询题目集
+     */
+    @Override
+    public List<QuestionSet> searchQuestionSetsByUserIdAndName(Long userId, String name) {
+        // 参数校验
+        if (userId == null) {
+            throw new IllegalArgumentException("用户ID不能为空");
+        }
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("查询名称不能为空");
+        }
+        // 处理模糊查询的通配符
+        String likeName = "%" + name.trim() + "%";
+        return questionSetMapper.selectByUserIdAndNameLike(userId, likeName);
+    }
+
+    /**
+     * 综合查询（用户ID + 分类 + 名称模糊查询）
+     */
+    @Override
+    public List<QuestionSet> filterQuestionSets(Long userId, String category, String name) {
+        // 参数校验（用户ID为必传）
+        if (userId == null) {
+            throw new IllegalArgumentException("用户ID不能为空");
+        }
+        // 处理模糊查询的通配符（如果名称不为空）
+        String likeName = (name != null && !name.trim().isEmpty()) ? "%" + name.trim() + "%" : null;
+        return questionSetMapper.selectByUserIdAndCategoryAndNameLike(userId, category, likeName);
+    }
 }

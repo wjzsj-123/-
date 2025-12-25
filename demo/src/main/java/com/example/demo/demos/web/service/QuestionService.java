@@ -32,4 +32,7 @@ public interface QuestionService {
      * @return 更新成功的记录数
      */
     int updateQuestion(Question question);
+
+    // 新增根据ID查询题目方法
+    Question getQuestionById(Long id);
 }

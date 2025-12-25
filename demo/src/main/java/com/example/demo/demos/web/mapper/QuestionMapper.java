@@ -1,6 +1,8 @@
 package com.example.demo.demos.web.mapper;
 
+import com.example.demo.demos.web.pojo.FillAnswer;
 import com.example.demo.demos.web.pojo.Question;
+import com.example.demo.demos.web.pojo.QuestionOption;
 import org.apache.ibatis.annotations.Mapper;
 import java.util.List;
 
@@ -29,4 +31,10 @@ public interface QuestionMapper {
 
     // 批量删除题目（根据题库ID）
     int deleteByQuestionSetId(Long questionSetId);
+
+    // 新增查询题目关联的选项（选择题用）
+    List<QuestionOption> selectOptionsByQuestionId(Long questionId);
+
+    // 新增查询题目关联的答案（填空题用）
+    List<FillAnswer> selectFillAnswersByQuestionId(Long questionId);
 }

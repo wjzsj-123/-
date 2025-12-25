@@ -73,4 +73,33 @@
             #{id}
         </foreach>
     </delete>
+
+    <!-- 根据用户ID和分类查询 -->
+    <select id="selectByUserIdAndCategory" resultType="com.example.demo.demos.web.pojo.QuestionSet">
+        SELECT <include refid="BaseColumnList"/> FROM question_set
+        WHERE user_id = #{userId}
+        AND category = #{category}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 根据用户ID和名称模糊查询 -->
+    <select id="selectByUserIdAndNameLike" resultType="com.example.demo.demos.web.pojo.QuestionSet">
+        SELECT <include refid="BaseColumnList"/> FROM question_set
+        WHERE user_id = #{userId}
+        AND name LIKE #{name}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- 综合查询（用户ID + 分类 + 名称模糊） -->
+    <select id="selectByUserIdAndCategoryAndNameLike" resultType="com.example.demo.demos.web.pojo.QuestionSet">
+        SELECT <include refid="BaseColumnList"/> FROM question_set
+        WHERE user_id = #{userId}
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        <if test="name != null">
+            AND name LIKE #{name}
+        </if>
+        ORDER BY create_time DESC
+    </select>
 </mapper>

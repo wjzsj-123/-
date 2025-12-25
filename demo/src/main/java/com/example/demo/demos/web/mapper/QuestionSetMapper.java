@@ -2,6 +2,8 @@ package com.example.demo.demos.web.mapper;
 
 import com.example.demo.demos.web.pojo.QuestionSet;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
 import java.util.List;
 
 @Mapper
@@ -35,4 +37,23 @@ public interface QuestionSetMapper {
 
     // 补充：批量删除题库（根据ID列表）
     int batchDeleteByIds(List<Long> ids);
+
+    // 1. 为多参数添加@Param注解
+    List<QuestionSet> selectByUserIdAndCategory(
+            @Param("userId") Long userId,
+            @Param("category") String category
+    );
+
+    // 2. 为多参数添加@Param注解
+    List<QuestionSet> selectByUserIdAndNameLike(
+            @Param("userId") Long userId,
+            @Param("name") String name
+    );
+
+    // 3. 为多参数添加@Param注解
+    List<QuestionSet> selectByUserIdAndCategoryAndNameLike(
+            @Param("userId") Long userId,
+            @Param("category") String category,
+            @Param("name") String name
+    );
 }

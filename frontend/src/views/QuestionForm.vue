@@ -1,3 +1,4 @@
+<!--QuestionForm.vue-->
 <template>
   <div class="question-form">
     <h4>{{ isEdit ? '编辑题目' : '新增题目' }}</h4>
@@ -97,35 +98,49 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import {computed, ref} from 'vue';
 import { defineProps, defineEmits } from 'vue';
+
+// 计算属性：自动判断是否为编辑模式（根据是否有ID）
+const isEdit = computed(() => !!form.value.id);
 
 // 接收外部参数
 const props = defineProps({
-  // 编辑时传入的题目数据
-  question: {
+  // 接收父组件传递的edit-data参数（关键修复）
+  editData: {
     type: Object,
     default: () => ({})
   },
-  // 是否为编辑模式
-  isEdit: {
-    type: Boolean,
-    default: false
+  // 接收题库ID（父组件传递的question-set-id）
+  questionSetId: {
+    type: [String, Number],
+    required: true
   }
 });
 
 // 定义事件
 const emit = defineEmits(['save', 'cancel']);
 
-// 表单数据（初始化时匹配下拉框的字符串值，而非数字）
+// 表单数据初始化（修正后）
 const form = ref({
-  id: props.question.id || null,
-  questionSetId: props.question.questionSetId || null, // 关联的题库ID
-  content: props.question.content || '',
-  type: props.question.type === 1 ? 'option' : (props.question.type === 2 ? 'fill' : ''), // 编辑时映射为下拉框对应的字符串
-  difficulty: props.question.difficulty === 1 ? 'easy' : (props.question.difficulty === 2 ? 'medium' : (props.question.difficulty === 3 ? 'hard' : '')),
-  options: props.question.options || [{ content: '', isCorrect: 0, sortOrder: 1 }],
-  fillAnswers: props.question.fillAnswers || [{ answer: '', sortOrder: 1 }]
+  id: props.editData.id || null,  // 从editData获取ID（编辑时存在）
+  questionSetId: props.questionSetId,  // 关联当前题库ID
+  content: props.editData.content || '',
+  // 类型转换：后端1→选择题(option)，2→填空题(fill)
+  type: props.editData.type === 1 ? 'option' : (props.editData.type === 2 ? 'fill' : ''),
+  // 难度转换：后端1→easy，2→medium，3→hard
+  difficulty: props.editData.difficulty === 1 ? 'easy' :
+      props.editData.difficulty === 2 ? 'medium' :
+          props.editData.difficulty === 3 ? 'hard' : '',
+  // 选择题选项（编辑时从editData获取，新增时默认2个选项）
+  options: props.editData.options ? [...props.editData.options] : [
+    { content: '', isCorrect: 0, sortOrder: 1 },
+    { content: '', isCorrect: 0, sortOrder: 2 }
+  ],
+  // 填空题答案（编辑时从editData获取，新增时默认1个空）
+  fillAnswers: props.editData.fillAnswers ? [...props.editData.fillAnswers] : [
+    { answer: '', sortOrder: 1 }
+  ]
 });
 
 // 添加选项
@@ -256,6 +271,7 @@ const handleSubmit = () => {
   console.log('最终提交数据：', submitData);
 
   // 7. 提交给父组件
+  console.log('提交数据是否包含ID（编辑时必须有）：', submitData.id);
   emit('save', submitData);
 };
 

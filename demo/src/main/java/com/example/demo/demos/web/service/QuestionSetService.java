@@ -24,4 +24,13 @@ public interface QuestionSetService {
 
     // 查询所有
     List<QuestionSet> getAllQuestionSets();
+
+    // 根据用户ID和分类查询题目集
+    List<QuestionSet> getQuestionSetsByUserIdAndCategory(Long userId, String category);
+
+    // 根据用户ID和名称模糊查询题目集
+    List<QuestionSet> searchQuestionSetsByUserIdAndName(Long userId, String name);
+
+    // 综合查询（用户ID + 分类 + 名称模糊查询）
+    List<QuestionSet> filterQuestionSets(Long userId, String category, String name);
 }

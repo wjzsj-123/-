@@ -156,4 +156,24 @@ public class QuestionServiceImpl implements QuestionService {
             fillAnswerMapper.batchAddFillAnswers(fillAnswers);
         }
     }
+
+    // 新增根据ID查询题目实现
+    @Override
+    public Question getQuestionById(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("题目ID不能为空");
+        }
+        // 查询题目基本信息
+        Question question = questionMapper.selectById(id);
+        if (question == null) {
+            return null;
+        }
+        // 根据题目类型查询关联数据（选项/答案）
+        if (question.getType() == 1) { // 选择题：查询选项
+            question.setOptions(questionMapper.selectOptionsByQuestionId(id));
+        } else if (question.getType() == 2) { // 填空题：查询答案
+            question.setFillAnswers(questionMapper.selectFillAnswersByQuestionId(id));
+        }
+        return question;
+    }
 }
