@@ -26,4 +26,10 @@ public class Question {
     private QuestionSet questionSet;
     private List<QuestionOption> options;        // 选择题选项
     private List<FillAnswer> fillAnswers;        // 填空题答案
+
+    // 动态获取分数（如果数据库中未存储，默认选择题5分，填空题10分）
+    public Integer getScore() {
+        // 类型为选择题时返回5分，填空题返回10分
+        return (type == TYPE_CHOICE) ? 5 : 10;
+    }
 }

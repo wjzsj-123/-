@@ -50,4 +50,12 @@
         WHERE paper_id = #{paperId}
         ORDER BY sort_order ASC
     </select>
+
+    <!-- 新增：根据试卷ID查询题目ID列表 -->
+    <select id="selectQuestionIdsByPaperId" resultType="java.lang.Long">
+        SELECT question_id
+        FROM paper_question
+        WHERE paper_id = #{paperId}
+        ORDER BY sort_order ASC
+    </select>
 </mapper>

@@ -8,10 +8,13 @@
     </sql>
 
     <!-- 新增试卷 -->
-    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.Paper">
-        INSERT INTO paper (title, description, user_id, category, total_questions, create_time)
-        VALUES (#{title}, #{description}, #{userId}, #{category}, #{totalQuestions}, #{createTime})
-    </insert>
+    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.Paper"
+            useGeneratedKeys="true"
+            keyProperty="id"
+    keyColumn="id">
+    INSERT INTO paper (title, description, user_id, category, total_questions, create_time)
+    VALUES (#{title}, #{description}, #{userId}, #{category}, #{totalQuestions}, #{createTime})
+</insert>
 
     <!-- 根据ID删除 -->
     <delete id="deleteById" parameterType="java.lang.Long">

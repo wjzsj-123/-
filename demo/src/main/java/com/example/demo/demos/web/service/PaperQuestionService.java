@@ -5,6 +5,12 @@ import com.example.demo.demos.web.pojo.PaperQuestion;
 import java.util.List;
 
 public interface PaperQuestionService {
+    // 批量新增试卷与题目的关联关系
+    int batchAdd(List<PaperQuestion> paperQuestions);
+
+    // 根据试卷ID查询关联的题目ID列表
+    List<Long> getQuestionIdsByPaperId(Long paperId);
+
     // 新增试卷与题目的关联
     int addPaperQuestion(PaperQuestion paperQuestion);
 

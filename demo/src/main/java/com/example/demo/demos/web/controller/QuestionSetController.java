@@ -1,7 +1,9 @@
 package com.example.demo.demos.web.controller;
 
 import com.example.demo.demos.web.common.Result;
+import com.example.demo.demos.web.dto.QuestionCountDTO;
 import com.example.demo.demos.web.pojo.QuestionSet;
+import com.example.demo.demos.web.service.QuestionService;
 import com.example.demo.demos.web.service.QuestionSetService;
 import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
@@ -13,6 +15,9 @@ public class QuestionSetController {
 
     @Resource
     private QuestionSetService questionSetService;
+
+    @Resource
+    private QuestionService questionService;
 
     /**
      * 创建题目集
@@ -176,6 +181,20 @@ public class QuestionSetController {
             return Result.error(e.getMessage());
         } catch (Exception e) {
             return Result.error("查询异常：" + e.getMessage());
+        }
+    }
+
+    // 新增：查询指定题库的题目数量
+    // 新增：获取题库中选择题和填空题数量
+    @GetMapping("/{id}/count")
+    public Result<QuestionCountDTO> getQuestionCountByType(@PathVariable Long id) {
+        try {
+            QuestionCountDTO countDTO = questionService.countBySetId(id);
+            return Result.success("查询成功", countDTO);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("查询题目数量失败：" + e.getMessage());
         }
     }
 }

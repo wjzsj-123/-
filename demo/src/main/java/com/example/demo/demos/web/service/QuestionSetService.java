@@ -33,4 +33,7 @@ public interface QuestionSetService {
 
     // 综合查询（用户ID + 分类 + 名称模糊查询）
     List<QuestionSet> filterQuestionSets(Long userId, String category, String name);
+
+    // 新增：根据题库ID查询题目数量
+    int getQuestionCountBySetId(Long setId);
 }

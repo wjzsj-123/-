@@ -115,4 +115,29 @@
         WHERE question_id = #{questionId}
         ORDER BY sort_order ASC
     </select>
+
+    <!-- 根据题库ID和类型查询题目 -->
+    <select id="selectBySetIdAndType" resultType="com.example.demo.demos.web.pojo.Question">
+        SELECT <include refid="BaseColumnList"/> FROM question
+        WHERE question_set_id = #{questionSetId}
+        AND type = #{type}
+        ORDER BY RAND()  <!-- 随机排序，方便后续抽取 -->
+    </select>
+
+    <!-- 根据题库ID统计题目数量 -->
+    <select id="countByQuestionSetId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM question
+        WHERE question_set_id = #{setId}
+    </select>
+
+    <!-- 统计题库内不同类型题目数量-->
+    <select id="countByQuestionSetIdAndType" resultType="com.example.demo.demos.web.dto.QuestionCountDTO">
+        SELECT
+            -- 直接使用1匹配选择题类型
+            SUM(CASE WHEN type = 1 THEN 1 ELSE 0 END) as choiceCount,
+            -- 直接使用2匹配填空题类型
+            SUM(CASE WHEN type = 2 THEN 1 ELSE 0 END) as fillCount
+        FROM question
+        WHERE question_set_id = #{setId}
+    </select>
 </mapper>

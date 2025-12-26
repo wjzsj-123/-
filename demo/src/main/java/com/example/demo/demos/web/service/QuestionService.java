@@ -1,5 +1,6 @@
 package com.example.demo.demos.web.service;
 
+import com.example.demo.demos.web.dto.QuestionCountDTO;
 import com.example.demo.demos.web.pojo.Question;
 import java.util.List;
 
@@ -35,4 +36,9 @@ public interface QuestionService {
 
     // 新增根据ID查询题目方法
     Question getQuestionById(Long id);
+
+    // 根据题库ID和题目类型查询题目
+    List<Question> getQuestionsBySetIdAndType(Long questionSetId, Integer type);
+
+    QuestionCountDTO countBySetId(Long setId);
 }

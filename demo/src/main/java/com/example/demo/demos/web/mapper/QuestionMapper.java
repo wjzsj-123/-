@@ -1,9 +1,12 @@
 package com.example.demo.demos.web.mapper;
 
+import com.example.demo.demos.web.dto.QuestionCountDTO;
 import com.example.demo.demos.web.pojo.FillAnswer;
 import com.example.demo.demos.web.pojo.Question;
 import com.example.demo.demos.web.pojo.QuestionOption;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
 import java.util.List;
 
 @Mapper
@@ -37,4 +40,16 @@ public interface QuestionMapper {
 
     // 新增查询题目关联的答案（填空题用）
     List<FillAnswer> selectFillAnswersByQuestionId(Long questionId);
+
+    // 根据题库ID和类型查询题目
+    List<Question> selectBySetIdAndType(
+            @Param("questionSetId") Long questionSetId,
+            @Param("type") Integer type
+    );
+
+    // 新增：根据题库ID查询题目数量
+    int countByQuestionSetId(Long setId);
+
+    // 新增：统计题库中选择题和填空题数量
+    QuestionCountDTO countByQuestionSetIdAndType(@Param("setId") Long setId);
 }

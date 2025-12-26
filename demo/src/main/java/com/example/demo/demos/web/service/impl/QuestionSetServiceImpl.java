@@ -1,5 +1,6 @@
 package com.example.demo.demos.web.service.impl;
 
+import com.example.demo.demos.web.mapper.QuestionMapper;
 import com.example.demo.demos.web.pojo.QuestionSet;
 import com.example.demo.demos.web.mapper.QuestionSetMapper;
 import com.example.demo.demos.web.service.QuestionSetService;
@@ -12,6 +13,9 @@ public class QuestionSetServiceImpl implements QuestionSetService {
 
     @Resource
     private QuestionSetMapper questionSetMapper;
+
+    @Resource
+    private QuestionMapper questionMapper;
 
     @Override
     public int createQuestionSet(QuestionSet questionSet) {
@@ -120,5 +124,14 @@ public class QuestionSetServiceImpl implements QuestionSetService {
         // 处理模糊查询的通配符（如果名称不为空）
         String likeName = (name != null && !name.trim().isEmpty()) ? "%" + name.trim() + "%" : null;
         return questionSetMapper.selectByUserIdAndCategoryAndNameLike(userId, category, likeName);
+    }
+
+    @Override
+    public int getQuestionCountBySetId(Long setId) {
+        if (setId == null) {
+            throw new IllegalArgumentException("题库ID不能为空");
+        }
+        // 假设QuestionMapper中有查询指定题库下题目数量的方法
+        return questionMapper.countByQuestionSetId(setId);
     }
 }

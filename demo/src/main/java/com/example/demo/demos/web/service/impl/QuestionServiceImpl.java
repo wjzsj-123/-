@@ -1,5 +1,6 @@
 package com.example.demo.demos.web.service.impl;
 
+import com.example.demo.demos.web.dto.QuestionCountDTO;
 import com.example.demo.demos.web.mapper.QuestionMapper;
 import com.example.demo.demos.web.mapper.QuestionOptionMapper;
 import com.example.demo.demos.web.mapper.FillAnswerMapper;
@@ -175,5 +176,24 @@ public class QuestionServiceImpl implements QuestionService {
             question.setFillAnswers(questionMapper.selectFillAnswersByQuestionId(id));
         }
         return question;
+    }
+
+    @Override
+    public List<Question> getQuestionsBySetIdAndType(Long questionSetId, Integer type) {
+        if (questionSetId == null) {
+            throw new IllegalArgumentException("题库ID不能为空");
+        }
+        if (type == null) {
+            throw new IllegalArgumentException("题目类型不能为空");
+        }
+        return questionMapper.selectBySetIdAndType(questionSetId, type);
+    }
+
+    @Override
+    public QuestionCountDTO countBySetId(Long setId) {
+        if (setId == null) {
+            throw new IllegalArgumentException("题库ID不能为空");
+        }
+        return questionMapper.countByQuestionSetIdAndType(setId);
     }
 }

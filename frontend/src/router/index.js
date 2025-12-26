@@ -6,6 +6,7 @@ import HomeContent from '@/views/HomeContent.vue'
 import QuestionSet from '@/views/QuestionSet.vue'
 import Paper from '@/views/Paper.vue'
 import UserProfile from '@/views/UserProfile.vue'
+import GeneratePaper from "@/views/GeneratePaper.vue";
 
 const routes = [
     { path: '/', redirect: '/login' },
@@ -33,6 +34,12 @@ const routes = [
                 meta: { requiresAuth: true }
             },
             { path: 'paper', component: Paper },
+            // 添加生成试卷路由（作为home的子路由，保持路径一致性）
+            {
+                path: 'paper/generate',
+                component: GeneratePaper,
+                meta: { requiresAuth: true }
+            },
             { path: 'user/profile', component: UserProfile }
         ]
     }
@@ -46,7 +53,13 @@ const router = createRouter({
 // 全局路由守卫
 router.beforeEach((to, from, next) => {
     const userInfo = localStorage.getItem('userInfo');
-    const requireAuthPaths = ['/home', '/home/question-set', '/home/paper', '/home/user/profile'];
+    const requireAuthPaths = [
+        '/home',
+        '/home/question-set',
+        '/home/paper',
+        '/home/paper/generate',  // 新增路径
+        '/home/user/profile'
+    ];
 
     if (requireAuthPaths.includes(to.path)) {
         userInfo ? next() : next('/login');

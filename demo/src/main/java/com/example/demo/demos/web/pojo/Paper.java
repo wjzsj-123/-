@@ -1,7 +1,10 @@
 package com.example.demo.demos.web.pojo;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import lombok.Data;
 
 @Data
@@ -17,4 +20,21 @@ public class Paper {
     // 非数据库字段，用于关联查询
     private User user;             // 关联创建者信息
     private List<PaperQuestion> paperQuestions; // 试卷包含的题目列表
+
+    /**
+     * 获取试卷包含的所有题目列表
+     * 从关联的 paperQuestions 中提取 question 对象
+     * @return 题目列表（Question），若没有题目则返回空列表
+     */
+    public List<Question> getQuestions() {
+        // 避免空指针异常，若 paperQuestions 为 null 则返回空列表
+        if (paperQuestions == null) {
+            // Java 8 及以下版本使用 Collections.emptyList()
+            return Collections.emptyList();
+        }
+        // 从中间表对象中提取题目对象
+        return paperQuestions.stream()
+                .map(PaperQuestion::getQuestion) // 假设 PaperQuestion 有 getQuestion() 方法
+                .collect(Collectors.toList());
+    }
 }

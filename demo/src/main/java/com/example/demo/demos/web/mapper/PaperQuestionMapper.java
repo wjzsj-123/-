@@ -27,4 +27,7 @@ public interface PaperQuestionMapper {
 
     // 根据试卷ID查询所有关联题目
     List<PaperQuestion> selectByPaperId(Long paperId);
+
+    // 新增：根据试卷ID查询关联的题目ID列表
+    List<Long> selectQuestionIdsByPaperId(Long paperId);
 }

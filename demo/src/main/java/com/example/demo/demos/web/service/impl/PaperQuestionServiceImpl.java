@@ -16,6 +16,22 @@ public class PaperQuestionServiceImpl implements PaperQuestionService {
     private PaperQuestionMapper paperQuestionMapper;
 
     @Override
+    public int batchAdd(List<PaperQuestion> paperQuestions) {
+        if (paperQuestions == null || paperQuestions.isEmpty()) {
+            throw new IllegalArgumentException("关联关系列表不能为空");
+        }
+        return paperQuestionMapper.batchInsert(paperQuestions);
+    }
+
+    @Override
+    public List<Long> getQuestionIdsByPaperId(Long paperId) {
+        if (paperId == null) {
+            throw new IllegalArgumentException("试卷ID不能为空");
+        }
+        return paperQuestionMapper.selectQuestionIdsByPaperId(paperId);
+    }
+
+    @Override
     public int addPaperQuestion(PaperQuestion paperQuestion) {
         validatePaperQuestion(paperQuestion);
         return paperQuestionMapper.insert(paperQuestion);
@@ -24,12 +40,35 @@ public class PaperQuestionServiceImpl implements PaperQuestionService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int batchAddPaperQuestions(List<PaperQuestion> paperQuestions) {
+        // 校验列表非空
         if (paperQuestions == null || paperQuestions.isEmpty()) {
             throw new IllegalArgumentException("关联列表不能为空");
         }
-        for (PaperQuestion pq : paperQuestions) {
-            validatePaperQuestion(pq);
+
+        // 提取并校验试卷ID（确保所有记录的paperId一致且非空）
+        Long paperId = paperQuestions.get(0).getPaperId();
+        if (paperId == null) {
+            throw new IllegalArgumentException("试卷ID不能为空");
         }
+
+        // 逐个校验每个关联记录
+        for (int i = 0; i < paperQuestions.size(); i++) {
+            PaperQuestion pq = paperQuestions.get(i);
+            // 校验当前记录的paperId是否与首个记录一致
+            if (!paperId.equals(pq.getPaperId())) {
+                throw new IllegalArgumentException("第" + (i + 1) + "条记录的试卷ID不一致");
+            }
+            // 校验题目ID非空
+            if (pq.getQuestionId() == null) {
+                throw new IllegalArgumentException("第" + (i + 1) + "条记录的题目ID不能为空");
+            }
+            // 补充排序序号（若未设置）
+            if (pq.getSortOrder() == null) {
+                pq.setSortOrder(i + 1);
+            }
+        }
+
+        // 执行批量插入
         return paperQuestionMapper.batchInsert(paperQuestions);
     }
 
