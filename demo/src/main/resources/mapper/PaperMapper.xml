@@ -4,7 +4,7 @@
 
 <mapper namespace="com.example.demo.demos.web.mapper.PaperMapper">
     <sql id="BaseColumnList">
-        id, title, description, user_id, category, total_questions, create_time
+        id, title, description, user_id, category, total_questions, create_time, last_answer_time, is_answered
     </sql>
 
     <!-- 新增试卷 -->
@@ -38,10 +38,109 @@
         SELECT <include refid="BaseColumnList"/> FROM paper WHERE id = #{id}
     </select>
 
-    <!-- 根据ID查询试卷（关联题目列表） -->
-    <select id="selectWithQuestionsById" resultType="com.example.demo.demos.web.pojo.Paper">
-        SELECT <include refid="BaseColumnList"/> FROM paper WHERE id = #{id}
-        <!-- 关联查询通过ResultMap实现，此处简化 -->
+    <!-- 1. 定义Question的ResultMap（包含选项和答案） -->
+    <resultMap id="QuestionResultMap" type="com.example.demo.demos.web.pojo.Question">
+        <id column="q_id" property="id"/>
+        <result column="q_question_set_id" property="questionSetId"/>
+        <result column="q_content" property="content"/>
+        <result column="q_type" property="type"/>
+        <result column="q_difficulty" property="difficulty"/>
+        <result column="q_create_time" property="createTime"/>
+        <result column="q_update_time" property="updateTime"/>
+
+        <!-- 关联选择题选项 -->
+        <collection property="options" ofType="com.example.demo.demos.web.pojo.QuestionOption">
+            <id column="qo_id" property="id"/>
+            <result column="qo_question_id" property="questionId"/>
+            <result column="qo_content" property="content"/>
+            <result column="qo_is_correct" property="isCorrect"/>
+            <result column="qo_sort_order" property="sortOrder"/>
+        </collection>
+
+        <!-- 关联填空题答案 -->
+        <collection property="fillAnswers" ofType="com.example.demo.demos.web.pojo.FillAnswer">
+            <id column="fa_id" property="id"/>
+            <result column="fa_question_id" property="questionId"/>
+            <result column="fa_answer" property="answer"/>
+            <result column="fa_sort_order" property="sortOrder"/>
+        </collection>
+    </resultMap>
+
+    <!-- 2. 定义PaperQuestion的ResultMap（关联Question） -->
+    <resultMap id="PaperQuestionResultMap" type="com.example.demo.demos.web.pojo.PaperQuestion">
+        <!-- 映射PaperQuestion自身字段 -->
+        <id column="pq_id" property="id"/>
+        <result column="paper_id" property="paperId"/>
+        <result column="question_id" property="questionId"/>
+        <result column="pq_sort_order" property="sortOrder"/>
+
+        <!-- 关联映射Question对象（复用上面的QuestionResultMap） -->
+        <association property="question" resultMap="QuestionResultMap"/>
+    </resultMap>
+
+    <!-- 3. 定义包含paperQuestions的Paper ResultMap -->
+    <resultMap id="PaperWithQuestionsResultMap" type="com.example.demo.demos.web.pojo.Paper">
+        <!-- 映射Paper自身基础字段 -->
+        <id column="id" property="id"/>
+        <result column="title" property="title"/>
+        <result column="description" property="description"/>
+        <result column="user_id" property="userId"/>
+        <result column="category" property="category"/>
+        <result column="total_questions" property="totalQuestions"/>
+        <result column="create_time" property="createTime"/>
+        <result column="last_answer_time" property="lastAnswerTime"/>
+        <result column="is_answered" property="isAnswered"/>
+
+        <!-- 关联映射paperQuestions列表 -->
+        <collection property="paperQuestions" ofType="com.example.demo.demos.web.pojo.PaperQuestion"
+                    resultMap="PaperQuestionResultMap"/>
+    </resultMap>
+
+    <!-- 4. 实现关联查询的SQL（关联所有相关表） -->
+    <select id="selectWithQuestionsById" resultMap="PaperWithQuestionsResultMap">
+        SELECT
+            p.id,
+            p.title,
+            p.description,
+            p.user_id,
+            p.category,
+            p.total_questions,
+            p.create_time,
+            p.last_answer_time,
+            p.is_answered,
+            -- PaperQuestion字段（注意：注释前需有空格）
+            pq.id AS pq_id,
+            pq.paper_id AS paper_id,
+            pq.question_id AS question_id,
+            pq.sort_order AS pq_sort_order,
+            -- Question字段
+            q.id AS q_id,
+            q.question_set_id AS q_question_set_id,
+            q.content AS q_content,
+            q.type AS q_type,
+            q.difficulty AS q_difficulty,
+            q.create_time AS q_create_time,
+            q.update_time AS q_update_time,
+            -- QuestionOption字段
+            qo.id AS qo_id,
+            qo.question_id AS qo_question_id,
+            qo.content AS qo_content,
+            qo.is_correct AS qo_is_correct,
+            qo.sort_order AS qo_sort_order,
+            -- FillAnswer字段
+            fa.id AS fa_id,
+            fa.question_id AS fa_question_id,
+            fa.answer AS fa_answer,
+            fa.sort_order AS fa_sort_order
+        FROM paper p
+                 LEFT JOIN paper_question pq ON p.id = pq.paper_id
+                 LEFT JOIN question q ON pq.question_id = q.id
+                 LEFT JOIN question_option qo ON q.id = qo.question_id
+                 LEFT JOIN fill_answer fa ON q.id = fa.question_id
+        WHERE p.id = #{id}
+        ORDER BY pq.sort_order ASC,
+                 qo.sort_order ASC,
+                 fa.sort_order ASC
     </select>
 
     <!-- 根据用户ID查询 -->

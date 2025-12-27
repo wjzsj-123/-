@@ -4,11 +4,13 @@ import com.example.demo.demos.web.common.Result;
 import com.example.demo.demos.web.pojo.Paper;
 import com.example.demo.demos.web.pojo.PaperAnswerSubmit;
 import com.example.demo.demos.web.pojo.PaperResult;
+import com.example.demo.demos.web.pojo.UserAnswer;
 import com.example.demo.demos.web.service.PaperGenerateService;
 import com.example.demo.demos.web.service.PaperService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import java.util.HashMap;
 import java.util.List;
 
 @RestController
@@ -171,6 +173,114 @@ public class PaperController {
             return Result.success("查询成功", papers);
         } catch (Exception e) {
             return Result.error("查询所有试卷失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取试卷答题页数据（包含题目、选项，无答案）
+     * 复用Question、QuestionOption、FillAnswer
+     */
+    @GetMapping("/{paperId}/questions")
+    public Result getPaperQuestions(@PathVariable Long paperId) {
+        try {
+            if (paperId == null) {
+                return Result.error("试卷ID不能为空");
+            }
+            // 从Paper中获取关联的题目列表（包含选项/空答案）
+            Paper paper = paperService.getPaperWithQuestions(paperId);
+            if (paper == null) {
+                return Result.error("试卷不存在");
+            }
+            // 返回试卷基本信息+题目列表（不含标准答案标记）
+            return Result.success("获取题目成功", paper);
+        } catch (Exception e) {
+            return Result.error("获取题目失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 提交用户答案（支持批量提交）
+     * 用UserAnswer接收答题数据
+     */
+    @PostMapping("/{paperId}/submitAnswer")
+    public Result submitAnswers(
+            @PathVariable Long paperId,
+            @RequestParam Long userId,
+            @RequestBody List<UserAnswer> answers) {
+        try {
+            if (paperId == null || userId == null || answers == null || answers.isEmpty()) {
+                return Result.error("参数不完整");
+            }
+            // 提交答案并判分
+            paperService.submitUserAnswers(paperId, userId, answers);
+            return Result.success("提交成功");
+        } catch (Exception e) {
+            return Result.error("提交失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 查看用户答题结果（含正确答案）
+     * 复用Question、QuestionOption、FillAnswer、UserAnswer
+     */
+    @GetMapping("/{paperId}/result")
+    public Result getAnswerResult(
+            @PathVariable Long paperId,
+            @RequestParam Long userId) {
+        try {
+            if (paperId == null || userId == null) {
+                return Result.error("参数不完整");
+            }
+            // 1. 获取试卷题目（含标准答案）
+            Paper paper = paperService.getPaperWithQuestions(paperId);
+            if (paper == null) {
+                return Result.error("试卷不存在");
+            }
+            // 2. 获取用户答题记录
+            List<UserAnswer> userAnswers = paperService.getUserAnswers(paperId, userId);
+
+            // 3. 组合结果返回（题目+用户答案+标准答案）
+            return Result.success("查询成功",
+                    new HashMap<String, Object>() {{
+                        put("paper", paper);
+                        put("userAnswers", userAnswers);
+                    }});
+        } catch (Exception e) {
+            return Result.error("查询结果失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 保存答题进度（未完成时暂存）
+     */
+    @PostMapping("/{paperId}/save-draft")
+    public Result saveDraft(
+            @PathVariable Long paperId,
+            @RequestParam Long userId,
+            @RequestBody List<UserAnswer> answers) {
+        try {
+            if (paperId == null || userId == null) {
+                return Result.error("参数不完整");
+            }
+            paperService.saveAnswerDraft(paperId, userId, answers);
+            return Result.success("草稿保存成功");
+        } catch (Exception e) {
+            return Result.error("保存失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取保存的草稿（继续答题）
+     */
+    @GetMapping("/{paperId}/draft")
+    public Result getDraft(
+            @PathVariable Long paperId,
+            @RequestParam Long userId) {
+        try {
+            List<UserAnswer> draft = paperService.getAnswerDraft(paperId, userId);
+            return Result.success("查询草稿成功", draft);
+        } catch (Exception e) {
+            return Result.error("查询草稿失败：" + e.getMessage());
         }
     }
 }

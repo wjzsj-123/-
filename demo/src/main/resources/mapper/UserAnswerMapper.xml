@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.demos.web.mapper.UserAnswerMapper">
+
+    <!-- 基础字段列表 -->
+    <sql id="BaseColumnList">
+        id, user_id, paper_id, question_id, question_type,
+    choice_option_id, fill_content, sort_order,
+    is_correct, submit_time, update_time
+    </sql>
+
+    <!-- 插入用户答案 -->
+    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.UserAnswer">
+        INSERT INTO user_answer (
+            user_id, paper_id, question_id, question_type,
+            choice_option_id, fill_content, sort_order,  -- 新增sort_order
+            is_correct, submit_time, update_time
+        ) VALUES (
+                     #{userId}, #{paperId}, #{questionId}, #{questionType},
+                     #{choiceOptionId}, #{fillContent}, #{sortOrder},  -- 新增sort_order
+                     #{isCorrect}, #{submitTime}, #{updateTime}
+                 )
+    </insert>
+
+    <!-- 根据试卷ID和用户ID删除答案 -->
+    <delete id="deleteByPaperIdAndUserId">
+        DELETE FROM user_answer
+        WHERE paper_id = #{paperId} AND user_id = #{userId}
+    </delete>
+
+    <!-- 根据试卷ID和用户ID查询答案 -->
+    <select id="selectByPaperIdAndUserId" resultType="com.example.demo.demos.web.pojo.UserAnswer">
+        SELECT <include refid="BaseColumnList"/>
+        FROM user_answer
+        WHERE paper_id = #{paperId} AND user_id = #{userId}
+        ORDER BY question_id ASC
+    </select>
+
+    <!-- 删除草稿（is_correct为NULL的记录） -->
+    <delete id="deleteDraftByPaperIdAndUserId">
+        DELETE FROM user_answer
+        WHERE paper_id = #{paperId}
+          AND user_id = #{userId}
+          AND is_correct IS NULL
+    </delete>
+
+    <!-- 查询草稿（is_correct为NULL的记录） -->
+    <select id="selectDraftByPaperIdAndUserId" resultType="com.example.demo.demos.web.pojo.UserAnswer">
+        SELECT <include refid="BaseColumnList"/>
+        FROM user_answer
+        WHERE paper_id = #{paperId}
+        AND user_id = #{userId}
+        AND is_correct IS NULL
+        ORDER BY question_id ASC
+    </select>
+
+</mapper>

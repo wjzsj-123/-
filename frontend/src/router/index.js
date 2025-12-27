@@ -7,6 +7,8 @@ import QuestionSet from '@/views/QuestionSet.vue'
 import Paper from '@/views/Paper.vue'
 import UserProfile from '@/views/UserProfile.vue'
 import GeneratePaper from "@/views/GeneratePaper.vue";
+import PaperDetail from "@/views/PaperDetail.vue";
+import PaperResult from "@/views/PaperResult.vue";
 
 const routes = [
     { path: '/', redirect: '/login' },
@@ -40,6 +42,20 @@ const routes = [
                 component: GeneratePaper,
                 meta: { requiresAuth: true }
             },
+            // 新增答题页面路由（与paper/generate同级，扁平结构）
+            {
+                path: 'paper/answer/:paperId',
+                component: () => import('@/views/PaperDetail.vue'),
+                name: 'PaperDetail',
+                meta: { requiresAuth: true }
+            },
+            // 新增查看答案页面路由（可选）
+            {
+                path: 'paper/result/:paperId',
+                component: () => import('@/views/PaperResult.vue'),
+                name: 'PaperResult',
+                meta: { requiresAuth: true }
+            },
             { path: 'user/profile', component: UserProfile }
         ]
     }
@@ -58,7 +74,9 @@ router.beforeEach((to, from, next) => {
         '/home/question-set',
         '/home/paper',
         '/home/paper/generate',  // 新增路径
-        '/home/user/profile'
+        '/home/user/profile',
+        '/home/paper/answer/:paperId', // 新增
+        '/home/paper/result/:paperId', // 新增（可选）
     ];
 
     if (requireAuthPaths.includes(to.path)) {

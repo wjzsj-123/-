@@ -16,6 +16,8 @@ public class Paper {
     private String category;       // 试卷分类（如：数学、英语）
     private Integer totalQuestions;// 总题数
     private LocalDateTime createTime; // 创建时间
+    private Boolean isAnswered; // 核心：是否作答
+    private LocalDateTime lastAnswerTime; // 新增：最后作答时间（可为null）
 
     // 非数据库字段，用于关联查询
     private User user;             // 关联创建者信息
