@@ -29,6 +29,8 @@
             <if test="description != null">description = #{description},</if>
             <if test="category != null and category != ''">category = #{category},</if>
             <if test="totalQuestions != null">total_questions = #{totalQuestions},</if>
+            <if test="isAnswered != null">is_answered = #{isAnswered},</if>
+            <if test="lastAnswerTime != null">last_answer_time = #{lastAnswerTime},</if>
         </set>
         WHERE id = #{id}
     </update>

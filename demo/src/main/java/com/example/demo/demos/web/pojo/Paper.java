@@ -39,4 +39,18 @@ public class Paper {
                 .map(PaperQuestion::getQuestion) // 假设 PaperQuestion 有 getQuestion() 方法
                 .collect(Collectors.toList());
     }
+
+    /*
+     * 更新最后提交时间
+     */
+    public void setSubmitTime(LocalDateTime now) {
+        this.lastAnswerTime = now;
+    }
+
+    /*
+     * 更新是否已经回答
+     */
+    public void setIsAnswer(boolean b) {
+        this.isAnswered = b;
+    }
 }

@@ -54,4 +54,43 @@
         ORDER BY question_id ASC
     </select>
 
+    <!-- 批量插入用户答案 -->
+    <insert id="batchInsert">
+        INSERT INTO user_answer (
+        user_id, paper_id, question_id, question_type,
+        choice_option_id, fill_content, sort_order,
+        is_correct, submit_time, update_time
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.userId}, #{item.paperId}, #{item.questionId}, #{item.questionType},
+            #{item.choiceOptionId}, #{item.fillContent}, #{item.sortOrder},
+            #{item.isCorrect}, #{item.submitTime}, #{item.updateTime}
+            )
+        </foreach>
+    </insert>
+
+    <!-- 删除用户在试卷中的指定题目答案 -->
+    <delete id="deleteByUserPaperQuestions">
+        DELETE FROM user_answer
+        WHERE user_id = #{userId}
+        AND paper_id = #{paperId}
+        AND question_id IN
+        <foreach collection="questionIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- 根据用户ID和试卷ID查询答案 -->
+    <select id="selectByUserIdAndPaperId" resultType="com.example.demo.demos.web.pojo.UserAnswer">
+        SELECT
+            id, user_id, paper_id, question_id, question_type,
+            choice_option_id, fill_content, sort_order,
+            is_correct, submit_time, update_time
+        FROM user_answer
+        WHERE user_id = #{userId}
+          AND paper_id = #{paperId}
+        ORDER BY question_id ASC, sort_order ASC
+    </select>
+
 </mapper>

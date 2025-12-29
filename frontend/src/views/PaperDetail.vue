@@ -96,6 +96,14 @@
 import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+// 新增：获取当前登录用户ID（从localStorage中读取）
+const getUserInfo = () => {
+  const userInfo = localStorage.getItem('userInfo');
+  return userInfo ? JSON.parse(userInfo) : null;
+};
+const currentUser = ref(getUserInfo());
+const userId = ref(currentUser.value ? currentUser.value.id : null);
+
 // 路由相关
 const route = useRoute();
 const router = useRouter();
@@ -209,53 +217,69 @@ const goToNext = () => {
   }
 };
 
-// 构建答案提交数据
+// 构建答案提交数据（适配UserAnswer格式）
 const buildAnswerData = () => {
-  // 转换为后端需要的QuestionAnswer格式数组
-  const answers = [];
+  if (!userId.value) {
+    alert('请先登录');
+    return null;
+  }
 
-  // 处理选择题答案
+  const userAnswersList = [];
+
+  // 1. 处理选择题答案
   Object.entries(userAnswers.value).forEach(([questionId, optionId]) => {
-    answers.push({
-      questionId: Number(questionId),
-      choiceAnswer: optionId,
-      fillAnswers: null
-    });
+    // 找到对应的题目获取类型
+    const question = questions.value.find(q => q.id === Number(questionId));
+    if (question && question.type === 1) {
+      userAnswersList.push({
+        userId: userId.value,
+        paperId: Number(paperId),
+        questionId: Number(questionId),
+        questionType: 1, // 选择题
+        choiceOptionId: optionId, // 存储选项ID
+        fillContent: null,
+        sortOrder: null
+      });
+    }
   });
 
-  // 处理填空题答案
+  // 2. 处理填空题答案（按空拆分）
   Object.entries(fillAnswersMap.value).forEach(([questionId, answersArr]) => {
-    answers.push({
-      questionId: Number(questionId),
-      choiceAnswer: null,
-      fillAnswers: answersArr
-    });
+    const question = questions.value.find(q => q.id === Number(questionId));
+    if (question && question.type === 2) {
+      answersArr.forEach((answer, index) => {
+        userAnswersList.push({
+          userId: userId.value,
+          paperId: Number(paperId),
+          questionId: Number(questionId),
+          questionType: 2, // 填空题
+          choiceOptionId: null,
+          fillContent: answer, // 单个空的答案
+          sortOrder: index + 1 // 空的序号（1开始）
+        });
+      });
+    }
   });
 
-  return {
-    paperId: Number(paperId),
-    answers: answers
-  };
+  return userAnswersList;
 };
 
-// 保存答案（临时保存）
+// 保存答案,临时保存
 const saveAnswers = async () => {
-  const answerData = {
-    ...buildAnswerData(),
-    isTemporary: true
-  };
+  const answerData = buildAnswerData();
+  if (!answerData) return;
 
   try {
     const response = await fetch('/api/answer/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(answerData)
+      body: JSON.stringify(answerData) // 直接传递UserAnswer列表
     });
 
     const result = await response.json();
     if (result.code === 0) {
       alert('答案已保存');
-      router.push('/home/paper'); // 返回试卷列表页
+      router.push('/home/paper');
     } else {
       alert('保存失败：' + result.message);
     }
@@ -267,26 +291,34 @@ const saveAnswers = async () => {
 
 // 提交试卷（最终提交）
 const submitAnswers = async () => {
+  // 校验用户登录状态
+  if (!userId.value) {
+    alert('请先登录再提交试卷');
+    router.push('/login'); // 跳转到登录页
+    return;
+  }
+
   if (!confirm('确定要提交试卷吗？提交后无法修改答案。')) {
     return;
   }
 
-  const answerData = {
-    ...buildAnswerData(),
-    isTemporary: false
-  };
+  // 复用构建答案数据的方法（与保存功能共用同一套逻辑）
+  const userAnswersList = buildAnswerData();
+  if (!userAnswersList) {
+    return; // 构建失败时退出
+  }
 
   try {
     const response = await fetch('/api/answer/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(answerData)
+      body: JSON.stringify(userAnswersList) // 直接传递List<UserAnswer>格式
     });
 
     const result = await response.json();
     if (result.code === 0) {
       alert('提交成功！即将跳转到成绩页面');
-      router.push(`/paper/result/${paperId}`); // 跳转到成绩页
+      router.push(`/home/paper/result/${paperId}`);
     } else {
       alert('提交失败：' + result.message);
     }
@@ -296,27 +328,36 @@ const submitAnswers = async () => {
   }
 };
 
-// 加载已保存的答案
+// 加载已保存的答案（适配UserAnswer格式）
 const loadSavedAnswers = async () => {
-  try {
-    const response = await fetch(`/api/answer/paper/${paperId}/temp`);
+  if (!userId.value) return;
+
+  try {// 后端需提供查询用户试卷临时答案的接口
+    const response = await fetch(`/api/answer/user/${userId.value}/paper/${paperId}/temp`);
+
     const result = await response.json();
-    if (result.code === 0 && result.data) {
-      const saved = result.data;
+    if (result.code === 0 && result.data && result.data.length > 0) {
+      const savedAnswers = result.data;
 
       // 恢复选择题答案
-      saved.answers.forEach(answer => {
-        if (answer.choiceAnswer) {
-          userAnswers.value[answer.questionId] = answer.choiceAnswer;
-        }
-      });
+      savedAnswers
+          .filter(ans => ans.questionType === 1)
+          .forEach(ans => {
+            userAnswers.value[ans.questionId] = ans.choiceOptionId;
+          });
 
-      // 恢复填空题答案
-      saved.answers.forEach(answer => {
-        if (answer.fillAnswers) {
-          fillAnswersMap.value[answer.questionId] = answer.fillAnswers;
-        }
-      });
+      // 恢复填空题答案（按questionId和sortOrder重组数组）
+      const fillMap = {};
+      savedAnswers
+          .filter(ans => ans.questionType === 2)
+          .forEach(ans => {
+            if (!fillMap[ans.questionId]) {
+              fillMap[ans.questionId] = [];
+            }
+            // 按sortOrder位置存储（-1是因为数组从0开始）
+            fillMap[ans.questionId][ans.sortOrder - 1] = ans.fillContent;
+          });
+      fillAnswersMap.value = fillMap;
     }
   } catch (err) {
     console.log('无已保存答案或加载失败：', err);

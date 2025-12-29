@@ -197,7 +197,7 @@ const handleGeneratePaper = async () => {
     if (result.code === 0) {
       // 生成成功，跳转到试卷详情页
       alert('试卷生成成功！');
-      router.push(`/paper/detail/${result.data.id}`);
+      router.push(`/home/paper/answer/${result.data.id}`);
     } else {
       errorMsg.value = result.message || '生成试卷失败';
     }
