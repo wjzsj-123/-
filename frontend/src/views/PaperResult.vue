@@ -1,7 +1,7 @@
-<template>
+<<template>
   <div class="paper-result-container">
     <!-- 试卷基础信息 -->
-    <div class="paper-header">
+    <div class="paper-header" v-if="paper && paper.title">
       <h2>{{ paper.title }} - 答题结果</h2>
       <div class="score-info">
         <p>总分：<span class="total-score">{{ totalScore }}</span> 分</p>
@@ -16,7 +16,7 @@
         <p>正在加载答题结果...</p>
       </div>
 
-      <div v-else-if="questions.length === 0" class="empty-state">
+      <div v-else-if="!paper || questions.length === 0" class="empty-state">
         <p>暂无答题记录</p>
       </div>
 
@@ -29,6 +29,7 @@
           'correct': question.isCorrect,
           'incorrect': !question.isCorrect && question.userAnswer
         }"
+          v-if="paper"
       >
         <div class="question-header">
           <span class="question-index">第 {{ index + 1 }} 题</span>
@@ -98,6 +99,12 @@
     <div class="action-buttons">
       <button class="back-btn" @click="goBack">返回试卷列表</button>
     </div>
+
+    <!-- 错误状态显示 -->
+    <div v-if="error" class="error-state">
+      <p>{{ error }}</p>
+      <button class="retry-btn" @click="reloadData">重试</button>
+    </div>
   </div>
 </template>
 
@@ -110,12 +117,15 @@ const route = useRoute();
 const router = useRouter();
 const paperId = route.params.paperId; // 从路由参数获取试卷ID
 
-// 数据存储
+// 数据存储 - 初始化为空对象避免null问题
 const paper = ref({}); // 试卷基础信息
 const questions = ref([]); // 题目及答案列表
 const loading = ref(true);
 const totalScore = ref(0); // 总分
 const userScore = ref(0); // 用户得分
+
+// 添加错误状态管理
+const error = ref('');
 
 // 计算正确率
 const accuracy = computed(() => {
@@ -123,17 +133,28 @@ const accuracy = computed(() => {
   return ((userScore.value / totalScore.value) * 100).toFixed(1);
 });
 
+// 重新加载数据方法
+const reloadData = async () => {
+  loading.value = true;
+  error.value = '';
+  try {
+    await Promise.all([fetchPaperInfo(), fetchAnswerResult()]);
+    calculateScores();
+  } catch (err) {
+    error.value = err.message || '加载失败，请稍后重试';
+  } finally {
+    loading.value = false;
+  }
+};
+
 // 页面初始化
+// 修改onMounted中的错误处理
 onMounted(async () => {
   try {
-    await Promise.all([
-      fetchPaperInfo(),
-      fetchAnswerResult()
-    ]);
-    calculateScores(); // 计算总分和用户得分
+    await Promise.all([fetchPaperInfo(), fetchAnswerResult()]);
+    calculateScores();
   } catch (err) {
-    console.error('加载答题结果失败：', err);
-    alert('网络错误，无法加载答题结果');
+    error.value = err.message || '网络错误，无法加载答题结果';
   } finally {
     loading.value = false;
   }
@@ -141,24 +162,103 @@ onMounted(async () => {
 
 // 获取试卷基础信息
 const fetchPaperInfo = async () => {
-  const response = await fetch(`/api/paper/${paperId}`);
-  const result = await response.json();
-  if (result.code === 0) {
-    paper.value = result.data;
-  } else {
-    throw new Error(result.message || '获取试卷信息失败');
+  try {
+    const response = await fetch(`/api/paper/${paperId}`);
+    const result = await response.json();
+    if (result.code === 0) {
+      // 确保paper始终是对象
+      paper.value = result.data || {};
+    } else {
+      throw new Error(result.message || '获取试卷信息失败');
+    }
+  } catch (error) {
+    console.error('获取试卷信息出错:', error);
+    paper.value = {};
+    throw error;
   }
 };
 
 // 获取答题结果（包含题目、正确答案、用户答案）
 const fetchAnswerResult = async () => {
-  const response = await fetch(`/api/answer/result/${paperId}`);
-  const result = await response.json();
-  if (result.code === 0) {
-    questions.value = result.data || [];
-  } else {
-    throw new Error(result.message || '获取答题结果失败');
+  try {
+    // 从本地存储获取当前登录用户ID（假设登录时已存储）
+    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    const userId = userInfo.id;
+
+    if (!userId) {
+      throw new Error('未获取到用户信息，请重新登录');
+    }
+
+    // 修正请求路径，并添加userId参数
+    const response = await fetch(`/api/paper/${paperId}/result?userId=${userId}`);
+    const result = await response.json();
+
+    // 在 fetchAnswerResult 中添加调试打印
+    console.log("原始返回数据:", result.data);
+
+    if (!response.ok) {
+      throw new Error(`HTTP错误: ${response.status}`);
+    }
+
+    if (result.code === 0) {
+      // 处理返回的结果数据（需要转换为前端所需格式）
+      const { paper, userAnswers } = result.data;
+      questions.value = formatQuestionResult(paper.questions, userAnswers);
+    } else {
+      throw new Error(result.message || '获取答题结果失败');
+    }
+  } catch (error) {
+    console.error('获取答题结果出错:', error);
+    throw error;
   }
+};
+
+// 新增：格式化后端返回数据为前端所需结构
+const formatQuestionResult = (questions, userAnswers) => {
+  const answerMap = userAnswers.reduce((map, answer) => {
+    map[answer.questionId] = answer;
+    return map;
+  }, {});
+
+  return questions.map(question => {
+    const userAnswer = answerMap[question.id] || {};
+    let isCorrect = false;
+    let userAnswerData = [];
+    let correctAnswerData = [];
+
+    if (question.type === 1) { // 选择题逻辑保持不变
+      const correctOption = question.options.find(opt => opt.isCorrect === 1);
+      const correctOptionId = correctOption ? correctOption.id : null;
+      isCorrect = userAnswer.choiceAnswer === correctOptionId;
+      userAnswerData = userAnswer.choiceAnswer;
+      correctAnswerData = correctOption ? [correctOption.content] : [];
+    } else if (question.type === 2) { // 填空题核心修正
+      // 1. 处理正确答案：从 FillAnswer 对象数组中提取 answer 字段
+      correctAnswerData = question.fillAnswers
+          ? question.fillAnswers.map(fill => fill.answer).filter(Boolean)
+          : [];
+
+      // 2. 处理用户答案：从用户提交的答案中提取具体内容
+      // 假设用户答案格式与正确答案一致（对象数组）
+      userAnswerData = userAnswer.fillAnswer
+          ? userAnswer.fillAnswer.map(fill => fill.answer).filter(Boolean)
+          : [];
+
+      // 3. 修正答案比对逻辑（按顺序比对每个空的答案）
+      isCorrect = JSON.stringify(userAnswerData) === JSON.stringify(correctAnswerData);
+    }
+
+    return {
+      id: question.id,
+      content: question.content,
+      type: question.type,
+      score: question.score || 5,
+      isCorrect,
+      options: question.options || [],
+      correctAnswer: correctAnswerData, // 只传递答案文本
+      userAnswer: userAnswerData       // 只传递用户输入的文本
+    };
+  });
 };
 
 // 计算总分和用户得分
@@ -174,6 +274,8 @@ const calculateScores = () => {
 
 // 选项字母映射（A,B,C,D...）
 const getOptionLetter = (sortOrder) => {
+  // 防止sortOrder为null/undefined导致的错误
+  if (!sortOrder) return '';
   return String.fromCharCode(65 + (sortOrder - 1));
 };
 
@@ -184,6 +286,25 @@ const goBack = () => {
 </script>
 
 <style scoped>
+/* 添加错误状态样式 */
+.error-state {
+  text-align: center;
+  padding: 4rem 0;
+  color: #e74c3c;
+  background-color: white;
+  border-radius: 8px;
+}
+
+.retry-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 4px;
+  background-color: #3498db;
+  color: white;
+  cursor: pointer;
+}
+
 .paper-result-container {
   width: 100%;
   max-width: 1000px;
