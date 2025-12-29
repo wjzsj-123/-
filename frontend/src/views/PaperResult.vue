@@ -1,4 +1,4 @@
-<<template>
+<template>
   <div class="paper-result-container">
     <!-- 试卷基础信息 -->
     <div class="paper-header" v-if="paper && paper.title">
@@ -71,25 +71,33 @@
           </div>
         </div>
 
-        <!-- 填空题答案展示 -->
+        <!-- 填空题答案展示（优化后） -->
         <div v-if="question.type === 2" class="fill-answers">
-          <div class="answer-title">正确答案：</div>
-          <div class="correct-fill">
-            <span v-for="(ans, idx) in question.correctAnswer" :key="idx">
-              第 {{ idx + 1 }} 空：{{ ans }}
-              <span v-if="idx < question.correctAnswer.length - 1"> | </span>
-            </span>
-          </div>
-
-          <div class="answer-title mt-2">你的答案：</div>
-          <div class="user-fill" v-if="question.userAnswer && question.userAnswer.length">
-            <span v-for="(ans, idx) in question.userAnswer" :key="idx">
-              第 {{ idx + 1 }} 空：{{ ans || '未作答' }}
-              <span v-if="idx < question.userAnswer.length - 1"> | </span>
-            </span>
-          </div>
-          <div class="user-fill empty" v-else>
-            未作答
+          <div class="answer-title">答案详情：</div>
+          <div class="fill-detail-container">
+            <!-- 每个空单独显示 -->
+            <div
+                class="fill-item"
+                v-for="(correctAns, idx) in question.correctAnswer"
+                :key="idx"
+                :class="{
+                'fill-correct': question.userAnswer[idx] && correctAns === question.userAnswer[idx],
+                'fill-incorrect': question.userAnswer[idx] && correctAns !== question.userAnswer[idx],
+                'fill-empty': !question.userAnswer[idx]
+              }"
+            >
+              <div class="fill-label">第 {{ idx + 1 }} 空：</div>
+              <div class="fill-answers-wrap">
+                <div class="fill-correct-answer">
+                  <span class="label">正确答案：</span>
+                  <span class="content">{{ correctAns }}</span>
+                </div>
+                <div class="fill-user-answer">
+                  <span class="label">你的答案：</span>
+                  <span class="content">{{ question.userAnswer[idx] || '未作答' }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -109,6 +117,7 @@
 </template>
 
 <script setup>
+// 脚本部分保持不变，无需修改
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -148,7 +157,6 @@ const reloadData = async () => {
 };
 
 // 页面初始化
-// 修改onMounted中的错误处理
 onMounted(async () => {
   try {
     await Promise.all([fetchPaperInfo(), fetchAnswerResult()]);
@@ -166,7 +174,6 @@ const fetchPaperInfo = async () => {
     const response = await fetch(`/api/paper/${paperId}`);
     const result = await response.json();
     if (result.code === 0) {
-      // 确保paper始终是对象
       paper.value = result.data || {};
     } else {
       throw new Error(result.message || '获取试卷信息失败');
@@ -181,7 +188,7 @@ const fetchPaperInfo = async () => {
 // 获取答题结果（包含题目、正确答案、用户答案）
 const fetchAnswerResult = async () => {
   try {
-    // 从本地存储获取当前登录用户ID（假设登录时已存储）
+    // 从本地存储获取当前登录用户ID
     const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
     const userId = userInfo.id;
 
@@ -189,11 +196,9 @@ const fetchAnswerResult = async () => {
       throw new Error('未获取到用户信息，请重新登录');
     }
 
-    // 修正请求路径，并添加userId参数
     const response = await fetch(`/api/paper/${paperId}/result?userId=${userId}`);
     const result = await response.json();
 
-    // 在 fetchAnswerResult 中添加调试打印
     console.log("原始返回数据:", result.data);
 
     if (!response.ok) {
@@ -201,7 +206,6 @@ const fetchAnswerResult = async () => {
     }
 
     if (result.code === 0) {
-      // 处理返回的结果数据（需要转换为前端所需格式）
       const { paper, userAnswers } = result.data;
       questions.value = formatQuestionResult(paper.questions, userAnswers);
     } else {
@@ -213,39 +217,52 @@ const fetchAnswerResult = async () => {
   }
 };
 
-// 新增：格式化后端返回数据为前端所需结构
+// 格式化后端返回数据为前端所需结构
 const formatQuestionResult = (questions, userAnswers) => {
-  const answerMap = userAnswers.reduce((map, answer) => {
-    map[answer.questionId] = answer;
+  const answerMap = questions.reduce((map, question) => {
+    if (question.type === 2) {
+      // 填空题：收集当前题目的所有空的答案，按sortOrder排序
+      const questionAnswers = userAnswers
+          .filter(ans => ans.questionId === question.id)
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map(ans => ans.fillContent || ''); // 使用fillContent字段
+      map[question.id] = questionAnswers;
+    } else {
+      // 选择题：直接映射选项ID
+      const questionAnswer = userAnswers.find(ans => ans.questionId === question.id);
+      map[question.id] = questionAnswer ? questionAnswer.choiceOptionId : null;
+    }
     return map;
   }, {});
 
   return questions.map(question => {
-    const userAnswer = answerMap[question.id] || {};
     let isCorrect = false;
-    let userAnswerData = [];
+    let userAnswerData = answerMap[question.id] || [];
     let correctAnswerData = [];
 
-    if (question.type === 1) { // 选择题逻辑保持不变
+    if (question.type === 1) {
+      // 选择题逻辑
       const correctOption = question.options.find(opt => opt.isCorrect === 1);
       const correctOptionId = correctOption ? correctOption.id : null;
-      isCorrect = userAnswer.choiceAnswer === correctOptionId;
-      userAnswerData = userAnswer.choiceAnswer;
+      isCorrect = userAnswerData === correctOptionId;
       correctAnswerData = correctOption ? [correctOption.content] : [];
-    } else if (question.type === 2) { // 填空题核心修正
-      // 1. 处理正确答案：从 FillAnswer 对象数组中提取 answer 字段
+    } else if (question.type === 2) {
+      // 填空题逻辑
       correctAnswerData = question.fillAnswers
-          ? question.fillAnswers.map(fill => fill.answer).filter(Boolean)
+          ? question.fillAnswers
+              .filter(fill => fill.questionId === question.id)
+              .sort((a, b) => a.sortOrder - b.sortOrder)
+              .map(fill => fill.answer)
+              .filter(Boolean)
           : [];
 
-      // 2. 处理用户答案：从用户提交的答案中提取具体内容
-      // 假设用户答案格式与正确答案一致（对象数组）
-      userAnswerData = userAnswer.fillAnswer
-          ? userAnswer.fillAnswer.map(fill => fill.answer).filter(Boolean)
-          : [];
+      userAnswerData = answerMap[question.id] || [];
 
-      // 3. 修正答案比对逻辑（按顺序比对每个空的答案）
-      isCorrect = JSON.stringify(userAnswerData) === JSON.stringify(correctAnswerData);
+      // 判分逻辑（与后端保持一致）
+      isCorrect = correctAnswerData.length === userAnswerData.length &&
+          correctAnswerData.every((correct, index) =>
+              correct === userAnswerData[index]
+          );
     }
 
     return {
@@ -255,18 +272,15 @@ const formatQuestionResult = (questions, userAnswers) => {
       score: question.score || 5,
       isCorrect,
       options: question.options || [],
-      correctAnswer: correctAnswerData, // 只传递答案文本
-      userAnswer: userAnswerData       // 只传递用户输入的文本
+      correctAnswer: correctAnswerData,
+      userAnswer: userAnswerData
     };
   });
 };
 
 // 计算总分和用户得分
 const calculateScores = () => {
-  // 计算总分
   totalScore.value = questions.value.reduce((sum, q) => sum + (q.score || 0), 0);
-
-  // 计算用户得分
   userScore.value = questions.value.reduce((sum, q) => {
     return sum + (q.isCorrect ? (q.score || 0) : 0);
   }, 0);
@@ -274,7 +288,6 @@ const calculateScores = () => {
 
 // 选项字母映射（A,B,C,D...）
 const getOptionLetter = (sortOrder) => {
-  // 防止sortOrder为null/undefined导致的错误
   if (!sortOrder) return '';
   return String.fromCharCode(65 + (sortOrder - 1));
 };
@@ -496,8 +509,75 @@ const goBack = () => {
   background-color: #3498db;
 }
 
+/* 填空题优化样式 */
 .fill-answers {
-  line-height: 1.8;
+  margin-top: 1rem;
+}
+
+.fill-detail-container {
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.fill-item {
+  padding: 1rem;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.fill-item:last-child {
+  border-bottom: none;
+}
+
+.fill-item.fill-correct {
+  background-color: rgba(46, 204, 113, 0.05);
+  border-left: 3px solid #2ecc71;
+}
+
+.fill-item.fill-incorrect {
+  background-color: rgba(231, 76, 60, 0.05);
+  border-left: 3px solid #e74c3c;
+}
+
+.fill-item.fill-empty {
+  background-color: rgba(149, 165, 166, 0.05);
+  border-left: 3px solid #95a5a6;
+}
+
+.fill-label {
+  font-weight: bold;
+  color: #444;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+
+.fill-answers-wrap {
+  margin-left: 1.5rem;
+}
+
+.fill-correct-answer, .fill-user-answer {
+  margin-bottom: 0.3rem;
+  font-size: 0.95rem;
+}
+
+.fill-correct-answer .label, .fill-user-answer .label {
+  display: inline-block;
+  width: 80px;
+  color: #666;
+}
+
+.fill-correct-answer .content {
+  color: #2ecc71;
+  font-weight: 500;
+}
+
+.fill-user-answer .content {
+  color: #3498db;
+}
+
+.fill-item.fill-empty .fill-user-answer .content {
+  color: #95a5a6;
+  font-style: italic;
 }
 
 .correct-fill {
@@ -541,17 +621,13 @@ const goBack = () => {
 
 /* 响应式调整 */
 @media (max-width: 768px) {
-  .paper-result-container {
-    padding: 1rem;
+  .fill-answers-wrap {
+    margin-left: 0;
   }
 
-  .score-info {
-    gap: 1rem;
-  }
-
-  .question-header {
-    flex-direction: column;
-    align-items: flex-start;
+  .fill-correct-answer .label, .fill-user-answer .label {
+    width: 70px;
+    font-size: 0.9rem;
   }
 }
 </style>
