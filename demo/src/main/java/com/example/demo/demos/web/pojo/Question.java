@@ -7,7 +7,8 @@ import lombok.Data;
 
 @Data
 public class Question {
-    public static final int TYPE_CHOICE = 1;      // 选择题
+    public static final int TYPE_CHOICE = 1;      // 单选题
+    public static final int TYPE_MULTIPLE = 3;    // 多选题
     public static final int TYPE_FILL = 2;        // 填空题
 
     public static final int DIFFICULTY_EASY = 1;  // 简单
@@ -29,7 +30,7 @@ public class Question {
 
     // 动态获取分数（如果数据库中未存储，默认选择题5分，填空题10分）
     public Integer getScore() {
-        // 类型为选择题时返回5分，填空题返回10分
+        // 类型为单选题时返回5分，其它返回10分
         return (type == TYPE_CHOICE) ? 5 : 10;
     }
 }

@@ -13,7 +13,7 @@
 
     <!-- 题目操作区 -->
     <div class="question-actions">
-      <button class="add-question-btn" @click="showQuestionForm = true">
+      <button class="add-question-btn" @click="handleAddQuestion">
         + 新增题目
       </button>
     </div>
@@ -27,7 +27,7 @@
         <div class="question-header">
           <span class="question-index">{{ index + 1 }}.</span>
           <span class="question-type">
-            {{ q.type === 1 ? '选择题' : '填空题' }}
+          {{ q.type === 1 ? '单选题' : q.type === 3 ? '多选题' : '填空题' }}
           </span>
           <span class="question-difficulty">
             {{ getDifficultyText(q.difficulty) }}
@@ -36,7 +36,7 @@
         <div class="question-content">{{ q.content }}</div>
 
         <!-- 选择题选项展示 -->
-        <div v-if="q.type === 1" class="question-options">
+        <div v-if="q.type === 1 || q.type === 3" class="question-options">
           <div v-for="(opt, i) in q.options" :key="opt.id">
             <span class="option-letter">{{ String.fromCharCode(65 + i) }}.</span>
             <span class="option-content">{{ opt.content }}</span>
@@ -89,10 +89,17 @@ const questionSet = ref({});
 
 // 题目列表
 const questions = ref([]);
+console.log('获取到的题目列表数据:', questions)
 
 // 表单控制
 const showQuestionForm = ref(false);
 const currentEditQuestion = ref(null);
+
+// 新增方法：处理新增题目逻辑
+const handleAddQuestion = () => {
+  currentEditQuestion.value = null; // 关键：清空编辑数据
+  showQuestionForm.value = true;    // 显示表单
+};
 
 // 获取题库详情
 const getQuestionSetDetail = async () => {

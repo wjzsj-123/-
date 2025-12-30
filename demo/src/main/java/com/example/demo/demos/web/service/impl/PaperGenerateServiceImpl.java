@@ -27,6 +27,9 @@ public class PaperGenerateServiceImpl implements PaperGenerateService {
     @Resource
     private PaperQuestionService paperQuestionService; // 需自行创建的试卷与题目关联服务
 
+    @Resource
+    private QuestionSetService questionSetService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Paper generatePaper(Long userId, Long questionSetId, String paperName,
@@ -130,8 +133,9 @@ public class PaperGenerateServiceImpl implements PaperGenerateService {
                     judgeChoiceQuestion(question, userAnswer, qr);
                 } else if (question.getType() == Question.TYPE_FILL) {
                     judgeFillQuestion(question, userAnswer, qr);
+                } else if (question.getType() == Question.TYPE_MULTIPLE) { // 新增多选题类型判断
+                    judgeMultipleQuestion(question, userAnswer, qr); // 调用多选题判分方法
                 }
-
                 if (qr.getIsCorrect()) {
                     userScore += qr.getScore();
                 }
@@ -234,7 +238,55 @@ public class PaperGenerateServiceImpl implements PaperGenerateService {
         return option != null ? option.getContent() : "无效选项";
     }
 
-    // 需要注入QuestionSetService（根据项目实际包路径调整）
-    @Resource
-    private QuestionSetService questionSetService;
+    /**
+     * 判分多选题
+     */
+    private void judgeMultipleQuestion(Question question, QuestionAnswer userAnswer, QuestionResult result) {
+        // 获取该题所有正确选项
+        List<QuestionOption> correctOptions = questionOptionService.getCorrectOptionsByQuestionId(question.getId());
+        if (correctOptions.isEmpty()) {
+            result.setIsCorrect(false);
+            result.setCorrectAnswer("无正确答案配置");
+            result.setUserAnswer("未选择答案");
+            return;
+        }
+
+        // 提取正确选项ID列表
+        List<Long> correctOptionIds = correctOptions.stream()
+                .map(QuestionOption::getId)
+                .collect(Collectors.toList());
+
+        // 获取用户选择的选项ID列表（判空处理）
+        List<Long> userOptionIds = userAnswer.getMultipleChoiceAnswers();
+        if (userOptionIds == null || userOptionIds.isEmpty()) {
+            result.setIsCorrect(false);
+            result.setCorrectAnswer(getOptionContents(correctOptions)); // 显示正确选项内容
+            result.setUserAnswer("未选择答案");
+            return;
+        }
+
+        // 判断是否全对（用户选择的选项与正确选项完全一致）
+        boolean isAllCorrect = userOptionIds.containsAll(correctOptionIds)
+                && correctOptionIds.containsAll(userOptionIds);
+
+        result.setIsCorrect(isAllCorrect);
+        result.setCorrectAnswer(getOptionContents(correctOptions)); // 拼接正确选项内容
+        result.setUserAnswer(getOptionContentsByIds(userOptionIds)); // 拼接用户选择的选项内容
+    }
+
+    // 辅助方法：根据选项ID列表获取选项内容
+    private String getOptionContentsByIds(List<Long> optionIds) {
+        List<QuestionOption> options = optionIds.stream()
+                .map(questionOptionService::getOptionById)
+                .collect(Collectors.toList());
+        return getOptionContents(options);
+    }
+
+    // 辅助方法：拼接选项内容（如"A. 选项1，B. 选项2"）
+    private String getOptionContents(List<QuestionOption> options) {
+        return options.stream()
+                .sorted(Comparator.comparing(QuestionOption::getSortOrder)) // 按排序序号排序
+                .map(option -> (char) ('A' + option.getSortOrder() - 1) + ". " + option.getContent())
+                .collect(Collectors.joining("，"));
+    }
 }
