@@ -43,7 +43,8 @@ public class PaperController {
             @RequestParam Long questionSetId,
             @RequestParam String paperName,
             @RequestParam Integer choiceCount,
-            @RequestParam Integer fillCount) {
+            @RequestParam Integer fillCount,
+            @RequestParam Integer multiCount) {
         try {
             // 参数校验
             if (userId == null) {
@@ -67,7 +68,7 @@ public class PaperController {
 
             // 调用服务层生成试卷
             Paper paper = paperGenerateService.generatePaper(
-                    userId, questionSetId, paperName, choiceCount, fillCount);
+                    userId, questionSetId, paperName, choiceCount, fillCount, multiCount);
 
             return Result.success("试卷生成成功", paper);
         } catch (IllegalArgumentException e) {

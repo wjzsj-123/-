@@ -55,6 +55,20 @@
         </div>
 
         <div class="form-group">
+          <label for="multiCount">多选题数量 <span class="required">*</span></label>
+          <input
+              type="number"
+              id="multiCount"
+              v-model="form.multiCount"
+              required
+              min="0"
+              :max="maxMultiCount"
+              @input="validateTotalCount"
+          >
+          <span class="hint">最多选择 {{ maxFillCount }} 道</span>
+        </div>
+
+        <div class="form-group">
           <label for="fillCount">填空题数量 <span class="required">*</span></label>
           <input
               type="number"
@@ -96,7 +110,8 @@ const form = ref({
   questionSetId: '',
   paperName: '',
   choiceCount: 0,
-  fillCount: 0
+  fillCount: 0,
+  multiCount: 0
 });
 
 // 状态变量
@@ -104,6 +119,7 @@ const questionSets = ref([]);
 const errorMsg = ref('');
 const maxChoiceCount = ref(0);
 const maxFillCount = ref(0);
+const maxMultiCount = ref(0);
 const loading = ref(false);
 
 // 提交按钮状态
@@ -111,7 +127,7 @@ const isSubmitDisabled = computed(() => {
   return loading.value ||
       !form.value.questionSetId ||
       !form.value.paperName.trim() ||
-      (form.value.choiceCount <= 0 && form.value.fillCount <= 0);
+      (form.value.choiceCount <= 0 && form.value.fillCount <= 0 && form.value.multiCount <= 0);
 });
 
 // 初始化 - 获取用户ID和题库列表
@@ -141,8 +157,10 @@ const handleQuestionSetChange = async (e) => {
   if (!setId) {
     maxChoiceCount.value = 0;
     maxFillCount.value = 0;
+    maxMultiCount.value = 0;
     form.value.choiceCount = 0;
     form.value.fillCount = 0;
+    form.value.multiCount = 0;
     return;
   }
 
@@ -151,8 +169,10 @@ const handleQuestionSetChange = async (e) => {
     const response = await fetch(`/api/question-set/${setId}/count`);
     const result = await response.json();
     if (result.code === 0) {
+      console.log(result);
       maxChoiceCount.value = result.data.choiceCount || 0;
       maxFillCount.value = result.data.fillCount || 0;
+      maxMultiCount.value = result.data.multiCount || 0;
     }
   } catch (err) {
     console.error('获取题库题目数量失败', err);
@@ -168,8 +188,11 @@ const validateTotalCount = () => {
   if (form.value.fillCount > maxFillCount.value) {
     form.value.fillCount = maxFillCount.value;
   }
-  if (form.value.choiceCount + form.fillCount <= 0) {
-    errorMsg.value = '选择题和填空题数量不能同时为0';
+  if (form.value.multiCount > maxMultiCount.value) {
+    form.value.multiCount = maxMultiCount.value;
+  }
+  if (form.value.choiceCount + form.value.fillCount + form.value.multiCount <= 0) {
+    errorMsg.value = '题目总数不能小于0';
   }
 };
 
@@ -186,6 +209,7 @@ const handleGeneratePaper = async () => {
     params.append('paperName', form.value.paperName);
     params.append('choiceCount', form.value.choiceCount);
     params.append('fillCount', form.value.fillCount);
+    params.append('multiCount', form.value.multiCount);
 
     // 调用后端生成接口
     const response = await fetch('/api/paper/generate', {

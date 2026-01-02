@@ -19,7 +19,7 @@ public interface PaperGenerateService {
      * @return 生成的试卷对象
      */
     Paper generatePaper(Long userId, Long questionSetId, String paperName,
-                        Integer choiceCount, Integer fillCount);
+                        Integer choiceCount, Integer fillCount, Integer multiCount);
 
     /**
      * 提交试卷并判分

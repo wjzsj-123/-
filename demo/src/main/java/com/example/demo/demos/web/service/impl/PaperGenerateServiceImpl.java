@@ -33,7 +33,7 @@ public class PaperGenerateServiceImpl implements PaperGenerateService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Paper generatePaper(Long userId, Long questionSetId, String paperName,
-                               Integer choiceCount, Integer fillCount) {
+                               Integer choiceCount, Integer fillCount, Integer multiCount) {
         // 1. 校验题库是否存在
         QuestionSet questionSet = questionSetService.getQuestionSetById(questionSetId);
         if (questionSet == null) {
@@ -45,6 +45,8 @@ public class PaperGenerateServiceImpl implements PaperGenerateService {
                 questionSetId, Question.TYPE_CHOICE);
         List<Question> fillQuestions = questionService.getQuestionsBySetIdAndType(
                 questionSetId, Question.TYPE_FILL);
+        List<Question> multiQuestions = questionService.getQuestionsBySetIdAndType(
+                questionSetId, Question.TYPE_MULTIPLE);
 
         // 3. 校验题目数量是否充足
         if (choiceCount > 0 && choiceQuestions.size() < choiceCount) {
@@ -53,10 +55,14 @@ public class PaperGenerateServiceImpl implements PaperGenerateService {
         if (fillCount > 0 && fillQuestions.size() < fillCount) {
             throw new IllegalArgumentException("填空题数量不足，当前题库仅有" + fillQuestions.size() + "道填空题");
         }
+        if (multiCount > 0 && multiQuestions.size() < multiCount) {
+            throw new IllegalArgumentException("多选题数量不足，当前题库仅有" + multiQuestions.size() + "道多选题");
+        }
 
         // 4. 随机抽取题目
         List<Question> selectedChoices = randomSelectQuestions(choiceQuestions, choiceCount);
         List<Question> selectedFills = randomSelectQuestions(fillQuestions, fillCount);
+        List<Question> selectedMulti = randomSelectQuestions(multiQuestions, multiCount);
 
         // 5. 创建试卷
         Paper paper = new Paper();
@@ -80,6 +86,13 @@ public class PaperGenerateServiceImpl implements PaperGenerateService {
             paperQuestions.add(pq);
         }
         for (Question question : selectedFills) {
+            PaperQuestion pq = new PaperQuestion();
+            pq.setPaperId(paper.getId());
+            pq.setQuestionId(question.getId());
+            pq.setSortOrder(sortOrder++);
+            paperQuestions.add(pq);
+        }
+        for (Question question : selectedMulti) {
             PaperQuestion pq = new PaperQuestion();
             pq.setPaperId(paper.getId());
             pq.setQuestionId(question.getId());

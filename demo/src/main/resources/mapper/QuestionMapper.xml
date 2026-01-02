@@ -136,7 +136,9 @@
             -- 直接使用1匹配选择题类型
             SUM(CASE WHEN type = 1 THEN 1 ELSE 0 END) as choiceCount,
             -- 直接使用2匹配填空题类型
-            SUM(CASE WHEN type = 2 THEN 1 ELSE 0 END) as fillCount
+            SUM(CASE WHEN type = 2 THEN 1 ELSE 0 END) as fillCount,
+            -- 直接使用3匹配多选题类型
+            SUM(CASE WHEN type = 3 THEN 1 ELSE 0 END) as multiCount
         FROM question
         WHERE question_set_id = #{setId}
     </select>
