@@ -2,6 +2,7 @@ package com.example.demo.demos.web.controller;
 
 import com.example.demo.demos.web.common.Result;
 import com.example.demo.demos.web.dto.QuestionCountDTO;
+import com.example.demo.demos.web.mapper.QuestionMapper;
 import com.example.demo.demos.web.pojo.QuestionSet;
 import com.example.demo.demos.web.service.QuestionService;
 import com.example.demo.demos.web.service.QuestionSetService;
@@ -18,6 +19,9 @@ public class QuestionSetController {
 
     @Resource
     private QuestionService questionService;
+
+    @Resource
+    private QuestionMapper questionMapper;
 
     /**
      * 创建题目集
@@ -99,7 +103,16 @@ public class QuestionSetController {
     @GetMapping("/user/{userId}")
     public Result getQuestionSetsByUserId(@PathVariable Long userId) {
         try {
+            //System.out.println(userId + "正在查询题库列表");
             List<QuestionSet> questionSets = questionSetService.getQuestionSetsByUserId(userId);
+            // 为每个题库添加题型数量
+            for (QuestionSet set : questionSets) {
+                QuestionCountDTO countDTO = questionMapper.countByQuestionSetIdAndType(set.getId());
+                set.setChoiceCount(countDTO.getChoiceCount());
+                set.setMultiCount(countDTO.getMultiCount());
+                set.setFillCount(countDTO.getFillCount());
+                //System.out.println("题库 : " + set.getId() + " : " + set.getChoiceCount() + " : " + set.getMultiCount() + " : " + set.getFillCount());
+            }
             return Result.success("查询成功", questionSets);
         } catch (IllegalArgumentException e) {
             return Result.error(e.getMessage());
@@ -184,8 +197,7 @@ public class QuestionSetController {
         }
     }
 
-    // 新增：查询指定题库的题目数量
-    // 新增：获取题库中选择题和填空题数量
+    // 查询指定题库的题目数量
     @GetMapping("/{id}/count")
     public Result<QuestionCountDTO> getQuestionCountByType(@PathVariable Long id) {
         try {
@@ -195,6 +207,25 @@ public class QuestionSetController {
             return Result.error(e.getMessage());
         } catch (Exception e) {
             return Result.error("查询题目数量失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 根据用户ID查询题库数量
+     */
+    @GetMapping("/count")
+    public Result getQuestionSetCount(Long userId) {
+        try {
+            if (userId == null) {
+                throw new IllegalArgumentException("用户ID不能为空");
+            }
+            // 调用service层方法（需在QuestionSetService实现类中实现）
+            int count = questionSetService.countByUserId(userId);
+            return Result.success("查询成功", count);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("查询题库数量失败：" + e.getMessage());
         }
     }
 }

@@ -196,4 +196,12 @@ public class QuestionServiceImpl implements QuestionService {
         }
         return questionMapper.countByQuestionSetIdAndType(setId);
     }
+
+    @Override
+    public int countByUserId(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("用户ID不能为空");
+        }
+        return questionMapper.countByUserId(userId); // 需要在QuestionMapper中添加对应方法
+    }
 }

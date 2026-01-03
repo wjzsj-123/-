@@ -15,4 +15,9 @@ public class QuestionSet {
 
     // 非数据库字段，用于关联查询
     private User user;
+
+    // 非数据库字段，用于统计
+    private Integer choiceCount; // 单选题数量
+    private Integer multiCount;  // 多选题数量
+    private Integer fillCount;   // 填空题数量
 }

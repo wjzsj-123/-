@@ -21,7 +21,7 @@
               :key="set.id"
               :value="set.id"
           >
-            {{ set.name }}（选择题: {{ set.choiceCount }} 道 | 填空题: {{ set.fillCount }} 道）
+            {{ set.name }}（单选题: {{ set.choiceCount || 0 }} 道 | 多选题: {{ set.multiCount || 0 }} 道 | 填空题: {{ set.fillCount || 0 }} 道）
           </option>
         </select>
       </div>
@@ -84,10 +84,10 @@
       </div>
 
       <div class="error-message" v-if="errorMsg">{{ errorMsg }}</div>
-      <div class="total-count" v-if="form.choiceCount || form.fillCount">
-        试卷总题数: {{ form.choiceCount + form.fillCount }} 道
+      <div class="total-count" v-if="form.choiceCount || form.fillCount || form.multiCount">
+        试卷总题数: {{ form.choiceCount + form.fillCount + form.multiCount}} 道
         <br>
-        预计总分: {{ form.choiceCount * 5 + form.fillCount * 10 }} 分
+        预计总分: {{ form.choiceCount * 5 + form.fillCount * 10 + form.multiCount * 10}} 分
       </div>
 
       <button type="submit" class="generate-btn" :disabled="isSubmitDisabled">
@@ -138,8 +138,9 @@ onMounted(async () => {
 
   // 2. 获取所有题库列表
   try {
-    const response = await fetch(`/api/question-set?userId=${form.value.userId}`);
+    const response = await fetch(`/api/question-set/user/${form.value.userId}`);
     const result = await response.json();
+    console.log(result)
     if (result.code === 0) {
       questionSets.value = result.data || [];
     } else {

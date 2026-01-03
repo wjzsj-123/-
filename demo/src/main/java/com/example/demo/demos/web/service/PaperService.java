@@ -51,4 +51,7 @@ public interface PaperService {
      * 获取答题草稿
      */
     List<UserAnswer> getAnswerDraft(Long paperId, Long userId);
+
+    //根据用户ID查询试卷数量
+    int countByUserId(Long userId);
 }

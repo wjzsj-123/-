@@ -142,4 +142,13 @@
         FROM question
         WHERE question_set_id = #{setId}
     </select>
+
+    <!-- 新增：根据用户ID统计题目总数 -->
+    <!-- 逻辑：通过 question_set 表关联用户ID，统计该用户所有题库下的题目总数 -->
+    <select id="countByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(q.id)
+        FROM question q
+                 INNER JOIN question_set qs ON q.question_set_id = qs.id
+        WHERE qs.user_id = #{userId}
+    </select>
 </mapper>

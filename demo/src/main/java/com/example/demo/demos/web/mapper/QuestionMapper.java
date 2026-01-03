@@ -52,4 +52,7 @@ public interface QuestionMapper {
 
     // 新增：统计题库中选择题和填空题数量
     QuestionCountDTO countByQuestionSetIdAndType(@Param("setId") Long setId);
+
+    // 统计用户所有题库下的题目总数
+    int countByUserId(Long userId);
 }

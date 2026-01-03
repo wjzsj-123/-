@@ -157,4 +157,10 @@
         SELECT <include refid="BaseColumnList"/> FROM paper
         ORDER BY create_time DESC
     </select>
+
+    <!-- 根据用户ID统计试卷数量 -->
+    <select id="countByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM paper
+        WHERE user_id = #{userId}
+    </select>
 </mapper>

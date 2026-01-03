@@ -27,4 +27,7 @@ public interface PaperMapper {
 
     // 查询所有试卷（分页场景可扩展参数）
     List<Paper> selectAll();
+
+    // 根据用户ID统计试卷数量
+    int countByUserId(Long userId);
 }

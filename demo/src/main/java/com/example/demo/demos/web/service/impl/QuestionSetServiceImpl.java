@@ -134,4 +134,12 @@ public class QuestionSetServiceImpl implements QuestionSetService {
         // 假设QuestionMapper中有查询指定题库下题目数量的方法
         return questionMapper.countByQuestionSetId(setId);
     }
+
+    @Override
+    public int countByUserId(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("用户ID不能为空");
+        }
+        return questionSetMapper.countByUserId(userId); // 需要在Mapper中添加对应方法
+    }
 }

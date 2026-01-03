@@ -182,6 +182,14 @@ public class PaperServiceImpl implements PaperService {
         return userAnswerMapper.selectDraftByPaperIdAndUserId(paperId, userId);
     }
 
+    @Override
+    public int countByUserId(Long userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("用户ID不能为空");
+        }
+        return paperMapper.countByUserId(userId); // 需要在PaperMapper中添加对应方法
+    }
+
     // 辅助方法：判分逻辑
     private void judgeAnswer(UserAnswer answer) {
         if (answer.getQuestionType() == 1) { // 选择题（兼容单选/多选）

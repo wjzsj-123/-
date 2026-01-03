@@ -68,7 +68,7 @@ public class PaperGenerateServiceImpl implements PaperGenerateService {
         Paper paper = new Paper();
         paper.setUserId(userId);
         paper.setTitle(paperName);
-        paper.setTotalQuestions(choiceCount + fillCount);
+        paper.setTotalQuestions(choiceCount + fillCount + multiCount);
         paper.setCreateTime(LocalDateTime.now());
         paperService.addPaper(paper); // 新增试卷获取ID
         if (paper.getId() == null) {

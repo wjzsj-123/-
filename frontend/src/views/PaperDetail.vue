@@ -13,7 +13,10 @@
     <div class="question-card" v-if="currentQuestion">
       <div class="question-header">
         <span class="question-type">
-          {{ currentQuestion.type === 1 ? '选择题' : '填空题' }}
+          {{
+            currentQuestion.type === 1 ? '选择题' :
+            currentQuestion.type === 2 ? '填空题' : '多选题'
+          }}
         </span>
         <h3 class="question-content">{{ currentQuestion.content }}</h3>
       </div>
@@ -29,6 +32,22 @@
         >
           <span class="option-letter">{{ getOptionLetter(option.sortOrder) }}</span>
           <span class="option-content">{{ option.content }}</span>
+        </div>
+      </div>
+
+      <!-- 多选题选项 -->
+      <div v-if="currentQuestion.type === 3" class="options-container">
+        <div
+            class="option-item"
+            v-for="option in currentQuestion.options"
+            :key="option.id"
+            @click="toggleMultipleOption(option.id)"
+            :class="{ 'selected': multipleAnswers[currentQuestion.id]?.includes(option.id) }"
+        >
+          <span class="option-letter">{{ getOptionLetter(option.sortOrder) }}</span>
+          <span class="option-content">{{ option.content }}</span>
+          <!-- 多选框视觉标识 -->
+          <span class="checkbox-indicator"></span>
         </div>
       </div>
 
@@ -96,7 +115,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-// 新增：获取当前登录用户ID（从localStorage中读取）
+// 获取当前登录用户ID（从localStorage中读取）
 const getUserInfo = () => {
   const userInfo = localStorage.getItem('userInfo');
   return userInfo ? JSON.parse(userInfo) : null;
@@ -118,6 +137,7 @@ const currentQuestion = ref(null);
 
 // 用户答案存储
 const userAnswers = ref({}); // 选择题答案 { questionId: optionId }
+const multipleAnswers = ref({}); // 多选题答案 { questionId: [optionId1, optionId2] }
 const fillAnswers = ref([]); // 当前填空题的答案输入
 const fillAnswersMap = ref({}); // 填空题答案 { questionId: [answer1, answer2] }
 
@@ -158,13 +178,15 @@ const fetchQuestions = async () => {
   try {
     const response = await fetch(`/api/paper/${paperId}/questions`);
     const result = await response.json();
+    console.log(result);
     if (result.code === 0) {
       // 后端返回的是包含questions属性的paper对象
       const paperData = result.data;
       // 分离选择题（1）和填空题（2），并按类型排序
       const choices = paperData.questions.filter(q => q.type === 1);
+      const multiples = paperData.questions.filter(q => q.type === 3);
       const fills = paperData.questions.filter(q => q.type === 2);
-      questions.value = [...choices, ...fills];
+      questions.value = [...choices, ...multiples, ...fills];
       totalQuestions.value = questions.value.length;
     } else {
       alert('获取题目失败：' + result.message);
@@ -187,11 +209,34 @@ const loadQuestion = (index) => {
     fillAnswers.value = fillAnswersMap.value[currentQuestion.value.id] ||
         Array(currentQuestion.value.fillAnswers.length).fill('');
   }
+
+  // 如果是多选题，初始化选中状态
+  if (currentQuestion.value.type === 3) {
+    if (!multipleAnswers.value[currentQuestion.value.id]) {
+      multipleAnswers.value[currentQuestion.value.id] = [];
+    }
+  }
 };
 
 // 选择题选项选择
 const selectOption = (optionId) => {
   userAnswers.value[currentQuestion.value.id] = optionId;
+};
+
+// 多选题选项切换（新增）
+const toggleMultipleOption = (optionId) => {
+  const questionId = currentQuestion.value.id;
+  // 初始化当前题目的答案数组
+  if (!multipleAnswers.value[questionId]) {
+    multipleAnswers.value[questionId] = [];
+  }
+  const index = multipleAnswers.value[questionId].indexOf(optionId);
+  // 切换选中状态（存在则移除，不存在则添加）
+  if (index > -1) {
+    multipleAnswers.value[questionId].splice(index, 1);
+  } else {
+    multipleAnswers.value[questionId].push(optionId);
+  }
 };
 
 // 填空题答案更新
@@ -239,6 +284,25 @@ const buildAnswerData = () => {
         choiceOptionId: optionId, // 存储选项ID
         fillContent: null,
         sortOrder: null
+      });
+    }
+  });
+
+  // 2. 处理多选题答案（新增）
+  Object.entries(multipleAnswers.value).forEach(([questionId, optionIds]) => {
+    const question = questions.value.find(q => q.id === Number(questionId));
+    if (question && question.type === 3 && optionIds.length > 0) {
+      // 多选题每个选项单独存储一条记录
+      optionIds.forEach(optionId => {
+        userAnswersList.push({
+          userId: userId.value,
+          paperId: Number(paperId),
+          questionId: Number(questionId),
+          questionType: 3, // 多选题
+          choiceOptionId: optionId, // 存储选项ID
+          fillContent: null,
+          sortOrder: null
+        });
       });
     }
   });
@@ -344,6 +408,16 @@ const loadSavedAnswers = async () => {
           .filter(ans => ans.questionType === 1)
           .forEach(ans => {
             userAnswers.value[ans.questionId] = ans.choiceOptionId;
+          });
+
+      // 恢复多选题答案（新增）
+      savedAnswers
+          .filter(a => a.questionType === 3)
+          .forEach(answer => {
+          if (!multipleAnswers.value[answer.questionId]) {
+            multipleAnswers.value[answer.questionId] = [];
+          }
+          multipleAnswers.value[answer.questionId].push(answer.choiceOptionId);
           });
 
       // 恢复填空题答案（按questionId和sortOrder重组数组）
@@ -594,5 +668,39 @@ watch(currentQuestion, (newVal) => {
   .btn {
     width: 100%;
   }
+}
+
+.options-container .option-item {
+  position: relative;
+  padding-left: 2.5rem; /* 预留多选框位置 */
+}
+
+/* 多选题复选框样式 */
+.checkbox-indicator {
+  position: absolute;
+  left: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid #42b983;
+  border-radius: 3px;
+  transition: all 0.2s;
+}
+
+/* 选中状态样式 */
+.option-item.selected .checkbox-indicator::after {
+  content: "✓";
+  font-size: 0.8rem;
+  color: #42b983;
+  position: absolute;
+  left: 1px;
+  top: -2px;
+}
+
+/* 多选题选中背景色 */
+.option-item.selected {
+  background-color: rgba(66, 185, 131, 0.1);
+  border-color: #42b983;
 }
 </style>

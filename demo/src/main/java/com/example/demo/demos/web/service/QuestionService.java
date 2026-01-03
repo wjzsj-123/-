@@ -40,5 +40,9 @@ public interface QuestionService {
     // 根据题库ID和题目类型查询题目
     List<Question> getQuestionsBySetIdAndType(Long questionSetId, Integer type);
 
+    // 根据题库ID统计题目数量
     QuestionCountDTO countBySetId(Long setId);
+
+    // 根据用户ID统计题目数量
+    int countByUserId(Long userId);
 }

@@ -78,7 +78,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import QuestionForm from './QuestionForm.vue'; // 引入题目表单组件
+import QuestionForm from "@/views/QuestionForm.vue";
 
 // 路由参数（获取当前题库ID）
 const route = useRoute();

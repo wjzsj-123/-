@@ -34,7 +34,7 @@
         <div class="question-header">
           <span class="question-index">第 {{ index + 1 }} 题</span>
           <span class="question-type">
-            {{ question.type === 1 ? '选择题' : '填空题' }}
+            {{ getQuestionType(question.type) }}
             ({{ question.score }} 分)
           </span>
           <span class="answer-status" v-if="question.isCorrect">
@@ -52,8 +52,8 @@
           {{ question.content }}
         </div>
 
-        <!-- 选择题答案展示 -->
-        <div v-if="question.type === 1" class="choice-answers">
+        <!-- 选择题（单选/多选）答案展示 -->
+        <div v-if="question.type === 1 || question.type === 3" class="choice-answers">
           <div class="answer-title">选项：</div>
           <div
               class="option-item"
@@ -61,13 +61,13 @@
               :key="option.id"
               :class="{
               'correct-option': option.isCorrect,
-              'user-option': option.id === question.userAnswer
+              'user-option': question.userAnswer && Array.isArray(question.userAnswer) && question.userAnswer.includes(option.id)
             }"
           >
             <span class="option-letter">{{ getOptionLetter(option.sortOrder) }}</span>
             <span class="option-content">{{ option.content }}</span>
             <span class="option-tag" v-if="option.isCorrect">正确答案</span>
-            <span class="option-tag user-tag" v-if="option.id === question.userAnswer">你的答案</span>
+            <span class="option-tag user-tag" v-if="question.userAnswer && question.userAnswer.includes(option.id)">你的答案</span>
           </div>
         </div>
 
@@ -132,8 +132,6 @@ const questions = ref([]); // 题目及答案列表
 const loading = ref(true);
 const totalScore = ref(0); // 总分
 const userScore = ref(0); // 用户得分
-
-// 添加错误状态管理
 const error = ref('');
 
 // 计算正确率
@@ -227,10 +225,17 @@ const formatQuestionResult = (questions, userAnswers) => {
           .sort((a, b) => a.sortOrder - b.sortOrder)
           .map(ans => ans.fillContent || ''); // 使用fillContent字段
       map[question.id] = questionAnswers;
-    } else {
+    } else if (question.type === 1) {
       // 选择题：直接映射选项ID
       const questionAnswer = userAnswers.find(ans => ans.questionId === question.id);
-      map[question.id] = questionAnswer ? questionAnswer.choiceOptionId : null;
+      // 确保始终返回数组（即使为空）
+      map[question.id] = questionAnswer ? [questionAnswer.choiceOptionId] : [];
+    } else if (question.type === 3) {
+      // 多选题
+      const questionAnswers = userAnswers
+          .filter(ans => ans.questionId === question.id)
+          .map(ans => ans.choiceOptionId);
+      map[question.id] = questionAnswers.length ? questionAnswers : [];
     }
     return map;
   }, {});
@@ -241,10 +246,10 @@ const formatQuestionResult = (questions, userAnswers) => {
     let correctAnswerData = [];
 
     if (question.type === 1) {
-      // 选择题逻辑
+      // 单选题逻辑
       const correctOption = question.options.find(opt => opt.isCorrect === 1);
       const correctOptionId = correctOption ? correctOption.id : null;
-      isCorrect = userAnswerData === correctOptionId;
+      isCorrect = userAnswerData.length > 0 && userAnswerData[0] === correctOptionId;
       correctAnswerData = correctOption ? [correctOption.content] : [];
     } else if (question.type === 2) {
       // 填空题逻辑
@@ -263,6 +268,19 @@ const formatQuestionResult = (questions, userAnswers) => {
           correctAnswerData.every((correct, index) =>
               correct === userAnswerData[index]
           );
+    } else if (question.type === 3) {
+      // 多选题逻辑
+      const correctOptions = question.options.filter(opt => opt.isCorrect === 1);
+      const correctOptionIds = correctOptions.map(opt => opt.id);
+      correctAnswerData = correctOptions.map(opt => opt.content);
+
+      // 排序后比较（避免顺序问题导致判断错误）
+      const sortedUserAnswers = [...userAnswerData].sort();
+      const sortedCorrectAnswers = [...correctOptionIds].sort();
+
+      // 判断是否完全匹配
+      isCorrect = sortedUserAnswers.length === sortedCorrectAnswers.length &&
+          sortedUserAnswers.every((id, index) => id === sortedCorrectAnswers[index]);
     }
 
     return {
@@ -273,7 +291,7 @@ const formatQuestionResult = (questions, userAnswers) => {
       isCorrect,
       options: question.options || [],
       correctAnswer: correctAnswerData,
-      userAnswer: userAnswerData
+      userAnswer: userAnswerData || []
     };
   });
 };
@@ -290,6 +308,16 @@ const calculateScores = () => {
 const getOptionLetter = (sortOrder) => {
   if (!sortOrder) return '';
   return String.fromCharCode(65 + (sortOrder - 1));
+};
+
+// 获取题目类型文本
+const getQuestionType = (type) => {
+  switch(type) {
+    case 1: return '单选题';
+    case 2: return '填空题';
+    case 3: return '多选题';
+    default: return '未知题型';
+  }
 };
 
 // 返回试卷列表
@@ -617,6 +645,33 @@ const goBack = () => {
 
 .back-btn:hover {
   background-color: #2980b9;
+}
+
+.error-state {
+  text-align: center;
+  padding: 4rem 0;
+  color: #e74c3c;
+  background-color: white;
+  border-radius: 8px;
+}
+
+.retry-btn {
+  /* 保持原有样式 */
+}
+
+/* 可添加多选题特有样式 */
+.choice-answers .option-item {
+  /* 优化选项展示样式 */
+}
+
+.option-item.correct-option {
+  background-color: #f0fff4;
+  border-color: #b7eb8f;
+}
+
+.option-item.user-option {
+  background-color: #fff7e6;
+  border-color: #ffd591;
 }
 
 /* 响应式调整 */

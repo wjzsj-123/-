@@ -284,4 +284,22 @@ public class PaperController {
             return Result.error("查询草稿失败：" + e.getMessage());
         }
     }
+
+    /**
+     * 根据用户ID查询试卷数量
+     */
+    @GetMapping("/count")
+    public Result getPaperCount(Long userId) {
+        try {
+            if (userId == null) {
+                throw new IllegalArgumentException("用户ID不能为空");
+            }
+            int count = paperService.countByUserId(userId); // 需在PaperService实现
+            return Result.success("查询成功", count);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("查询试卷数量失败：" + e.getMessage());
+        }
+    }
 }
