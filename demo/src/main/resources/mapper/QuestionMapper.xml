@@ -151,4 +151,13 @@
                  INNER JOIN question_set qs ON q.question_set_id = qs.id
         WHERE qs.user_id = #{userId}
     </select>
+
+    <!-- 批量插入题目 -->
+    <insert id="batchInsert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO question (question_set_id, content, type, difficulty, create_time, update_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.questionSetId}, #{item.content}, #{item.type}, #{item.difficulty}, #{item.createTime}, #{item.updateTime})
+        </foreach>
+    </insert>
 </mapper>

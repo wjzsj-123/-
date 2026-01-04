@@ -55,4 +55,7 @@ public interface QuestionMapper {
 
     // 统计用户所有题库下的题目总数
     int countByUserId(Long userId);
+
+    // 新增：批量插入题目
+    int batchInsert(List<Question> questionList);
 }

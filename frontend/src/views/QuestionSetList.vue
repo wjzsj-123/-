@@ -47,6 +47,13 @@
           <router-link :to="`/home/question-set/${set.id}`" class="detail-btn">
             查看题目
           </router-link>
+          <button
+              @click="exportQuestionSet(set.id)"
+              class="export-btn"
+              :disabled="loading"
+          >
+            导出题库
+          </button>
         </td>
       </tr>
       <tr v-if="questionSets.length === 0">
@@ -102,6 +109,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 
 const router = useRouter();
 const questionSets = ref([]);
@@ -131,6 +139,25 @@ const resetFilter = () => {
   selectedCategory.value = '';
   fetchQuestionSets();  // 重置后重新加载
 };
+
+// 导出题库方法
+const exportQuestionSet = (setId) => {
+  if (!setId) {
+    ElMessage.error('题库ID不存在');
+    return;
+  }
+  try {
+    loading.value = true;
+    // 调用后端导出接口，打开新窗口下载
+    window.open(`/api/question-set/export/${setId}`, '_blank');
+    ElMessage.success('导出请求已发送，正在准备文件...');
+  } catch (error) {
+    ElMessage.error('导出失败：' + error.message);
+  } finally {
+    loading.value = false;
+  }
+};
+
 
 // 获取题库列表（优化版）
 const fetchQuestionSets = async () => {
@@ -381,6 +408,7 @@ onMounted(() => {
 .action-buttons {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap; /* 防止按钮溢出 */
 }
 
 .edit-btn {
@@ -485,5 +513,21 @@ onMounted(() => {
   padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
+}
+
+/* 导出按钮样式，与其他按钮风格统一 */
+.export-btn {
+  background-color: #2196f3; /* 蓝色标识导出 */
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.export-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
 }
 </style>

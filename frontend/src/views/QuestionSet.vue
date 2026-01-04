@@ -16,6 +16,19 @@
       <button class="add-question-btn" @click="handleAddQuestion">
         + 新增题目
       </button>
+      <el-upload
+          class="import-btn"
+          :action="`/api/question-set/import/${questionSetId}`"
+          :on-success="handleImportSuccess"
+          :on-error="handleImportError"
+          :before-upload="beforeUpload"
+          accept=".xlsx,.xls"
+          :show-file-list="true"
+      >
+        <button class="import-question-btn">
+          ↓ 导入题目
+        </button>
+      </el-upload>
     </div>
 
     <!-- 题目列表 -->
@@ -79,6 +92,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import QuestionForm from "@/views/QuestionForm.vue";
+import { ElMessage } from 'element-plus'; // 导入消息提示
 
 // 路由参数（获取当前题库ID）
 const route = useRoute();
@@ -94,6 +108,38 @@ console.log('获取到的题目列表数据:', questions)
 // 表单控制
 const showQuestionForm = ref(false);
 const currentEditQuestion = ref(null);
+
+// 新增：导入相关方法
+const beforeUpload = (file) => {
+  // 校验文件类型
+  const isExcel = file.type === 'application/vnd.ms-excel'
+      || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  if (!isExcel) {
+    ElMessage.error('只能上传Excel文件（.xlsx/.xls）');
+    return false;
+  }
+  // 校验文件大小（不超过2MB）
+  const isLt2M = file.size / 1024 / 1024 < 2;
+  if (!isLt2M) {
+    ElMessage.error('文件大小不能超过2MB');
+    return false;
+  }
+  return true;
+};
+
+const handleImportSuccess = (response) => {
+  if (response.code === 0) {
+    ElMessage.success(`导入成功，共导入${response.data}道题目`);
+    // 重新加载题目列表
+    getQuestions();
+  } else {
+    ElMessage.error(response.message || '导入失败');
+  }
+};
+
+const handleImportError = () => {
+  ElMessage.error('文件上传失败，请检查网络或文件格式');
+};
 
 // 新增方法：处理新增题目逻辑
 const handleAddQuestion = () => {
@@ -240,6 +286,10 @@ onMounted(() => {
 .question-actions {
   margin-bottom: 1rem;
   text-align: right;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end; /* 右对齐 */
+  align-items: center;
 }
 
 .add-question-btn {
@@ -357,5 +407,18 @@ onMounted(() => {
   padding: 1.5rem;
   border-radius: 8px;
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.2);
+}
+
+.import-btn {
+  display: inline-block;
+}
+
+.import-question-btn {
+  background-color: #ff9800; /* 橙色标识导入 */
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
 }
 </style>

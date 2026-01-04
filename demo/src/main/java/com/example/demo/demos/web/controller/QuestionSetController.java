@@ -1,13 +1,21 @@
 package com.example.demo.demos.web.controller;
 
+import com.alibaba.excel.EasyExcel;
+import com.alibaba.fastjson.JSON;
 import com.example.demo.demos.web.common.Result;
 import com.example.demo.demos.web.dto.QuestionCountDTO;
+import com.example.demo.demos.web.dto.QuestionExcelDTO;
 import com.example.demo.demos.web.mapper.QuestionMapper;
 import com.example.demo.demos.web.pojo.QuestionSet;
 import com.example.demo.demos.web.service.QuestionService;
 import com.example.demo.demos.web.service.QuestionSetService;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.List;
 
 @RestController
@@ -226,6 +234,57 @@ public class QuestionSetController {
             return Result.error(e.getMessage());
         } catch (Exception e) {
             return Result.error("查询题库数量失败：" + e.getMessage());
+        }
+    }
+
+    // 导出题库为Excel
+    @GetMapping("/export/{setId}")
+    public void exportQuestionSet(
+            @PathVariable Long setId,
+            HttpServletResponse response) throws IOException {
+        try {
+            if (setId == null) {
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().println(JSON.toJSONString(Result.error("题库ID不能为空")));
+                return;
+            }
+
+            // 设置响应头
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setCharacterEncoding("UTF-8");
+            String fileName = URLEncoder.encode("题库_" + setId, "UTF-8");
+            response.setHeader("Content-disposition", "attachment;filename=" + fileName + ".xlsx");
+
+            // 写入Excel
+            EasyExcel.write(response.getOutputStream(), QuestionExcelDTO.class)
+                    .sheet("题目数据")
+                    .doWrite(questionSetService.exportQuestionSet(setId));
+        } catch (Exception e) {
+            response.reset();
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            response.getWriter().println(JSON.toJSONString(Result.error("导出失败：" + e.getMessage())));
+        }
+    }
+
+    // 导入Excel到题库
+    @PostMapping("/import/{setId}")
+    public Result importQuestionSet(
+            @PathVariable Long setId,
+            @RequestParam("file") MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                return Result.error("请选择Excel文件");
+            }
+            if (setId == null) {
+                return Result.error("题库ID不能为空");
+            }
+
+            int count = questionSetService.importQuestionSet(setId, file.getInputStream());
+            return Result.success("导入成功，共导入" + count + "道题目", count);
+        } catch (Exception e) {
+            return Result.error("导入失败：" + e.getMessage());
         }
     }
 }

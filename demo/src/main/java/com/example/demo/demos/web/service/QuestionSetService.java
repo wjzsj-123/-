@@ -1,6 +1,9 @@
 package com.example.demo.demos.web.service;
 
+import com.example.demo.demos.web.dto.QuestionExcelDTO;
 import com.example.demo.demos.web.pojo.QuestionSet;
+
+import java.io.InputStream;
 import java.util.List;
 
 public interface QuestionSetService {
@@ -39,4 +42,10 @@ public interface QuestionSetService {
 
     // 根据用户ID查询题库数量
     int countByUserId(Long userId);
+
+    // 导出题库为ExcelDTO列表
+    List<QuestionExcelDTO> exportQuestionSet(Long setId);
+
+    // 导入Excel到题库
+    int importQuestionSet(Long setId, InputStream inputStream);
 }
