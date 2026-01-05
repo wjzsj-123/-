@@ -4,6 +4,7 @@ import com.example.demo.demos.web.pojo.QuestionSet;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
@@ -56,4 +57,20 @@ public interface QuestionSetMapper {
             @Param("category") String category,
             @Param("name") String name
     );
+
+    // 发布公共题库（更新is_public、publisher_id、publish_time）
+    int publishQuestionSet(
+            @Param("id") Long id,
+            @Param("publisherId") Long publisherId,
+            @Param("publishTime") LocalDateTime publishTime
+    );
+
+    // 查询公共题库列表（支持分类/名称模糊查询）
+    List<QuestionSet> selectPublicQuestionSets(
+            @Param("category") String category,
+            @Param("name") String name
+    );
+
+    // 导入公共题库（插入新的私有题库）
+    int insertImportedQuestionSet(QuestionSet questionSet);
 }

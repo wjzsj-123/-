@@ -102,4 +102,35 @@
         </if>
         ORDER BY create_time DESC
     </select>
+
+    <!-- 发布公共题库 -->
+    <update id="publishQuestionSet">
+        UPDATE question_set
+        SET is_public = 1,
+            publisher_id = #{publisherId},
+            publish_time = #{publishTime}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 查询公共题库列表 -->
+    <select id="selectPublicQuestionSets" resultType="com.example.demo.demos.web.pojo.QuestionSet">
+        SELECT <include refid="BaseColumnList"/>, is_public, publisher_id, publish_time
+        FROM question_set
+        WHERE is_public = 1
+        <if test="category != null and category != ''">
+            AND category = #{category}
+        </if>
+        <if test="name != null">
+            AND name LIKE #{name}
+        </if>
+        ORDER BY publish_time DESC
+    </select>
+
+    <!-- 导入公共题库（插入新私有题库） -->
+    <insert id="insertImportedQuestionSet" parameterType="com.example.demo.demos.web.pojo.QuestionSet">
+        INSERT INTO question_set
+        (user_id, name, category, create_time, update_time, is_public, publisher_id, publish_time)
+        VALUES
+            (#{userId}, #{name}, #{category}, #{createTime}, #{updateTime}, 0, null, null)
+    </insert>
 </mapper>

@@ -20,4 +20,9 @@ public class QuestionSet {
     private Integer choiceCount; // 单选题数量
     private Integer multiCount;  // 多选题数量
     private Integer fillCount;   // 填空题数量
+
+    // 新增公共题库字段
+    private Integer isPublic; // 0-私有，1-公共
+    private Long publisherId; // 发布者ID
+    private LocalDateTime publishTime;
 }

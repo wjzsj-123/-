@@ -51,4 +51,28 @@ public interface QuestionSetService {
 
     // 导入Excel到题库
     int importQuestionSet(Long setId, InputStream inputStream);
+
+    /**
+     * 发布题库为公共题库
+     * @param setId 题库ID
+     * @param publisherId 发布者ID
+     * @return 影响行数
+     */
+    int publishQuestionSet(Long setId, Long publisherId);
+
+    /**
+     * 查询公共题库列表
+     * @param category 分类（可选）
+     * @param name 名称模糊查询（可选）
+     * @return 公共题库列表
+     */
+    List<QuestionSet> getPublicQuestionSets(String category, String name);
+
+    /**
+     * 导入公共题库为私有题库
+     * @param publicSetId 公共题库ID
+     * @param userId 导入用户ID
+     * @return 新私有题库ID
+     */
+    Long importPublicQuestionSet(Long publicSetId, Long userId);
 }

@@ -300,4 +300,62 @@ public class QuestionSetController {
             return Result.error("导入失败：" + e.getMessage());
         }
     }
+
+    /**
+     * 发布题库为公共题库
+     * @param setId 题库ID
+     * @param publisherId 发布者ID（实际场景建议从登录态获取，而非参数）
+     */
+    @PutMapping("/publish/{setId}")
+    public Result publishQuestionSet(
+            @PathVariable Long setId,
+            @RequestParam Long publisherId
+    ) {
+        try {
+            int count = questionSetService.publishQuestionSet(setId, publisherId);
+            return count > 0 ? Result.success("发布公共题库成功") : Result.error("发布失败");
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("发布失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 查询公共题库列表
+     * @param category 分类（可选）
+     * @param name 名称关键词（可选）
+     */
+    @GetMapping("/public")
+    public Result getPublicQuestionSets(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String name
+    ) {
+        try {
+            List<QuestionSet> publicSets = questionSetService.getPublicQuestionSets(category, name);
+            return Result.success("查询公共题库成功", publicSets);
+        } catch (Exception e) {
+            return Result.error("查询失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 导入公共题库为私有题库
+     * @param publicSetId 公共题库ID
+     * @param userId 导入用户ID（实际场景从登录态获取）
+     */
+    @PostMapping("/import/{publicSetId}")
+    public Result importPublicQuestionSet(
+            @PathVariable Long publicSetId,
+            @RequestParam Long userId
+    ) {
+        try {
+            Long newSetId = questionSetService.importPublicQuestionSet(publicSetId, userId);
+            return Result.success("导入公共题库成功", newSetId);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("导入失败：" + e.getMessage());
+        }
+    }
 }

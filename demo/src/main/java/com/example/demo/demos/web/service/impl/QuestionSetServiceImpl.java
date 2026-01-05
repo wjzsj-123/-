@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.io.InputStream;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -331,5 +332,103 @@ public class QuestionSetServiceImpl implements QuestionSetService {
 
         // 返回导入数量
         return listener.getImportCount();
+    }
+
+    @Override
+    public int publishQuestionSet(Long setId, Long publisherId) {
+        // 参数校验
+        if (setId == null || publisherId == null) {
+            throw new IllegalArgumentException("题库ID和发布者ID不能为空");
+        }
+        // 校验题库归属（仅题库创建者可发布）
+        QuestionSet originalSet = questionSetMapper.selectById(setId);
+        if (originalSet == null) {
+            throw new IllegalArgumentException("题库不存在");
+        }
+        if (!publisherId.equals(originalSet.getUserId())) {
+            throw new IllegalArgumentException("无权限发布该题库");
+        }
+        // 发布题库（更新为公共）
+        return questionSetMapper.publishQuestionSet(
+                setId,
+                publisherId,
+                LocalDateTime.now()
+        );
+    }
+
+    @Override
+    public List<QuestionSet> getPublicQuestionSets(String category, String name) {
+        // 名称模糊查询处理（前端传关键词，后端拼接%）
+        if (name != null && !name.isEmpty()) {
+            name = "%" + name + "%";
+        }
+        return questionSetMapper.selectPublicQuestionSets(category, name);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class) // 事务保证：题库+题目+选项/答案原子导入
+    public Long importPublicQuestionSet(Long publicSetId, Long userId) {
+        // 1. 参数校验
+        if (publicSetId == null || userId == null) {
+            throw new IllegalArgumentException("公共题库ID和导入用户ID不能为空");
+        }
+        // 2. 查询公共题库信息
+        QuestionSet publicSet = questionSetMapper.selectById(publicSetId);
+        if (publicSet == null || publicSet.getIsPublic() != 1) {
+            throw new IllegalArgumentException("无效的公共题库");
+        }
+        // 3. 复制题库基础信息，创建私有题库
+        QuestionSet newPrivateSet = new QuestionSet();
+        newPrivateSet.setUserId(userId); // 归属为导入用户
+        newPrivateSet.setName(publicSet.getName() + "_导入_" + LocalDateTime.now().toString().replace(":", "")); // 避免重名
+        newPrivateSet.setDescription(publicSet.getDescription());
+        newPrivateSet.setCategory(publicSet.getCategory());
+        newPrivateSet.setIsPublic(0); // 私有题库
+        newPrivateSet.setCreateTime(LocalDateTime.now());
+        newPrivateSet.setUpdateTime(LocalDateTime.now());
+        // 插入新私有题库
+        questionSetMapper.insertImportedQuestionSet(newPrivateSet);
+        Long newSetId = newPrivateSet.getId(); // 需确保insert后返回自增ID（XML中配置useGeneratedKeys="true" keyProperty="id"）
+
+        // 4. 复制公共题库下的所有题目
+        List<Question> publicQuestions = questionMapper.selectByQuestionSetId(publicSetId); // 需实现题目查询方法
+        for (Question publicQ : publicQuestions) {
+            // 复制题目基础信息，归属到新私有题库
+            Question newQ = new Question();
+            newQ.setQuestionSetId(newSetId);
+            newQ.setContent(publicQ.getContent());
+            newQ.setType(publicQ.getType());
+            newQ.setDifficulty(publicQ.getDifficulty());
+            newQ.setCreateTime(LocalDateTime.now());
+            questionMapper.insert(newQ); // 插入新题目
+            Long newQuestionId = newQ.getId();
+
+            // 5. 复制题目选项（选择题）
+            if (publicQ.getType() == Question.TYPE_CHOICE || publicQ.getType() == Question.TYPE_MULTIPLE) {
+                List<QuestionOption> publicOptions = questionOptionMapper.selectByQuestionId(publicQ.getId());
+                for (QuestionOption opt : publicOptions) {
+                    QuestionOption newOpt = new QuestionOption();
+                    newOpt.setQuestionId(newQuestionId);
+                    newOpt.setContent(opt.getContent());
+                    newOpt.setIsCorrect(opt.getIsCorrect());
+                    newOpt.setSortOrder(opt.getSortOrder());
+                    questionOptionMapper.insert(newOpt);
+                }
+            }
+
+            // 6. 复制填空题答案
+            if (publicQ.getType() == Question.TYPE_FILL) {
+                List<FillAnswer> publicAnswers = fillAnswerMapper.selectByQuestionId(publicQ.getId());
+                for (FillAnswer ans : publicAnswers) {
+                    FillAnswer newAns = new FillAnswer();
+                    newAns.setQuestionId(newQuestionId);
+                    newAns.setAnswer(ans.getAnswer());
+                    newAns.setSortOrder(ans.getSortOrder());
+                    fillAnswerMapper.insert(newAns);
+                }
+            }
+        }
+
+        return newSetId; // 返回新私有题库ID
     }
 }
