@@ -204,4 +204,14 @@ public class QuestionServiceImpl implements QuestionService {
         }
         return questionMapper.countByUserId(userId); // 需要在QuestionMapper中添加对应方法
     }
+
+    @Override
+    public List<Question> getQuestionsByFilter(
+            Long questionSetId, String content, Integer type, Integer difficulty) {
+        if (questionSetId == null) {
+            throw new IllegalArgumentException("题库ID不能为空");
+        }
+        // 调用Mapper层方法执行查询
+        return questionMapper.selectByFilter(questionSetId, content, type, difficulty);
+    }
 }

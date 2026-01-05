@@ -226,7 +226,7 @@ const formatQuestionResult = (questions, userAnswers) => {
           .map(ans => ans.fillContent || ''); // 使用fillContent字段
       map[question.id] = questionAnswers;
     } else if (question.type === 1) {
-      // 选择题：直接映射选项ID
+      // 单选题：直接映射选项ID
       const questionAnswer = userAnswers.find(ans => ans.questionId === question.id);
       // 确保始终返回数组（即使为空）
       map[question.id] = questionAnswer ? [questionAnswer.choiceOptionId] : [];
@@ -240,7 +240,7 @@ const formatQuestionResult = (questions, userAnswers) => {
     return map;
   }, {});
 
-  return questions.map(question => {
+  const formattedQuestions = questions.map(question => {
     let isCorrect = false;
     let userAnswerData = answerMap[question.id] || [];
     let correctAnswerData = [];
@@ -277,23 +277,24 @@ const formatQuestionResult = (questions, userAnswers) => {
       // 排序后比较（避免顺序问题导致判断错误）
       const sortedUserAnswers = [...userAnswerData].sort();
       const sortedCorrectAnswers = [...correctOptionIds].sort();
-
-      // 判断是否完全匹配
-      isCorrect = sortedUserAnswers.length === sortedCorrectAnswers.length &&
-          sortedUserAnswers.every((id, index) => id === sortedCorrectAnswers[index]);
+      isCorrect = JSON.stringify(sortedUserAnswers) === JSON.stringify(sortedCorrectAnswers);
     }
 
     return {
-      id: question.id,
-      content: question.content,
-      type: question.type,
-      score: question.score || 5,
+      ...question,
       isCorrect,
-      options: question.options || [],
-      correctAnswer: correctAnswerData,
-      userAnswer: userAnswerData || []
+      userAnswer: userAnswerData,
+      correctAnswer: correctAnswerData
     };
   });
+
+  // 【核心修改】按 单选题(1) → 多选题(3) → 填空题(2) 排序
+  formattedQuestions.sort((a, b) => {
+    const typePriority = { 1: 0, 3: 1, 2: 2 }; // 定义优先级
+    return typePriority[a.type] - typePriority[b.type];
+  });
+
+  return formattedQuestions;
 };
 
 // 计算总分和用户得分

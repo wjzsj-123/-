@@ -1,20 +1,37 @@
 <template>
   <div class="home-content">
-    <h2>欢迎      欢迎使用题库系统
+    <h2>欢迎使用题库系统
       <span v-if="userInfo.nickname">，{{ userInfo.nickname }}</span>
     </h2>
-    <div class="stats-container">
-      <div class="stat-card">
-        <h3>题库数量</h3>
-        <p>{{ questionSetCount }}</p>
+
+    <!-- 统计数据容器 -->
+    <div class="stats-wrapper">
+      <div class="stats-container">
+        <div class="stat-card">
+          <h3>题库数量</h3>
+          <p>{{ questionSetCount }}</p>
+        </div>
+        <div class="stat-card">
+          <h3>试卷数量</h3>
+          <p>{{ paperCount }}</p>
+        </div>
+        <div class="stat-card">
+          <h3>题目总数</h3>
+          <p>{{ questionCount }}</p>
+        </div>
       </div>
-      <div class="stat-card">
-        <h3>试卷数量</h3>
-        <p>{{ paperCount }}</p>
-      </div>
-      <div class="stat-card">
-        <h3>题目总数</h3>
-        <p>{{ questionCount }}</p>
+    </div>
+
+    <!-- 每日一题区域 -->
+    <div class="daily-question-section">
+      <div class="daily-question-card">
+        <h3 class="daily-title">📖 每日一题</h3>
+        <div class="question-placeholder">
+          <p class="question-tip">今日学习任务尚未发布，敬请期待...</p>
+          <div class="question-footer">
+            <button class="practice-btn">开始练习</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -112,17 +129,27 @@ h2 {
   font-size: 1.8rem;
 }
 
-.stats-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-}
-
-.stat-card {
+/* 统计数据外层容器 - 限制宽度 */
+.stats-wrapper {
+  max-width: 800px;
+  margin: 0 auto 40px;
   background: white;
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* 统计卡片容器 - 保持网格布局但在有限宽度内 */
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.stat-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
   text-align: center;
   transition: transform 0.3s ease;
 }
@@ -142,5 +169,75 @@ h2 {
   font-weight: bold;
   color: #42b983;
   margin: 0;
+}
+
+/* 每日一题区域样式 */
+.daily-question-section {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.daily-question-card {
+  background: white;
+  border-radius: 8px;
+  padding: 30px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.daily-title {
+  color: #333;
+  font-size: 1.4rem;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.question-placeholder {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.question-tip {
+  color: #666;
+  font-size: 1.1rem;
+  margin-bottom: 30px;
+}
+
+.question-footer {
+  margin-top: 20px;
+}
+
+.practice-btn {
+  background-color: #42b983;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 30px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.practice-btn:hover {
+  background-color: #36a371;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .stats-container {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-wrapper, .daily-question-card {
+    padding: 15px;
+  }
+
+  .daily-title {
+    font-size: 1.2rem;
+  }
+
+  .question-placeholder {
+    padding: 20px 10px;
+  }
 }
 </style>

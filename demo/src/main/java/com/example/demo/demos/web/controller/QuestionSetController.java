@@ -54,7 +54,7 @@ public class QuestionSetController {
     @DeleteMapping("/{id}")
     public Result deleteQuestionSet(@PathVariable Long id) {
         try {
-            int count = questionSetService.deleteQuestionSet(id);
+            int count = questionSetService.deleteQuestionSetById(id);
             return count > 0 ?
                     Result.success("题目集删除成功") :
                     Result.error("未找到该题目集");
@@ -62,6 +62,19 @@ public class QuestionSetController {
             return Result.error(e.getMessage());
         } catch (Exception e) {
             return Result.error("删除异常：" + e.getMessage());
+        }
+    }
+
+    // 批量删除题库
+    @DeleteMapping("/batch")
+    public Result batchDeleteQuestionSets(@RequestBody List<Long> ids) {
+        try {
+            int count = questionSetService.batchDeleteByIds(ids);
+            return Result.success("批量删除题库成功", count);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("批量删除题库失败：" + e.getMessage());
         }
     }
 

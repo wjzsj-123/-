@@ -3,16 +3,13 @@ package com.example.demo.demos.web.service.impl;
 import com.alibaba.excel.EasyExcel;
 import com.example.demo.demos.web.dto.QuestionExcelDTO;
 import com.example.demo.demos.web.listener.QuestionExcelListener;
-import com.example.demo.demos.web.mapper.FillAnswerMapper;
-import com.example.demo.demos.web.mapper.QuestionMapper;
-import com.example.demo.demos.web.mapper.QuestionOptionMapper;
-import com.example.demo.demos.web.pojo.FillAnswer;
-import com.example.demo.demos.web.pojo.Question;
-import com.example.demo.demos.web.pojo.QuestionOption;
-import com.example.demo.demos.web.pojo.QuestionSet;
-import com.example.demo.demos.web.mapper.QuestionSetMapper;
+import com.example.demo.demos.web.mapper.*;
+import com.example.demo.demos.web.pojo.*;
 import com.example.demo.demos.web.service.QuestionSetService;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import javax.annotation.Resource;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -34,6 +31,12 @@ public class QuestionSetServiceImpl implements QuestionSetService {
     @Resource
     private FillAnswerMapper fillAnswerMapper;
 
+    @Resource
+    private PaperQuestionMapper paperQuestionMapper;
+
+    @Resource
+    private PaperMapper paperMapper;
+
     @Override
     public int createQuestionSet(QuestionSet questionSet) {
         // 校验必要参数
@@ -50,11 +53,60 @@ public class QuestionSetServiceImpl implements QuestionSetService {
     }
 
     @Override
-    public int deleteQuestionSet(Long id) {
+    public int deleteQuestionSetById(Long id) {
         if (id == null) {
-            throw new IllegalArgumentException("题目集ID不能为空");
+            throw new IllegalArgumentException("题库ID不能为空");
         }
+
+        // 步骤1：查询该题库下的所有题目ID
+        List<Long> questionIds = questionMapper.selectQuestionIdsByQuestionSetId(id);
+
+        // 步骤2：如果有题目，先处理关联的试卷
+        List<Long> paperIds = new ArrayList<>();
+        if (CollectionUtils.isNotEmpty(questionIds)) {
+            // 2.1 查询这些题目关联的所有PaperId
+            paperIds = paperQuestionMapper.selectPaperIdsByQuestionIds(questionIds);
+
+            // 2.2 批量删除PaperQuestion关联记录（按PaperId）
+            if (CollectionUtils.isNotEmpty(paperIds)) {
+                paperQuestionMapper.deleteByPaperIds(paperIds);
+            }
+
+            // 2.3 批量删除关联的Paper
+            if (CollectionUtils.isNotEmpty(paperIds)) {
+                paperMapper.batchDeleteByIds(paperIds);
+            }
+
+            // 2.4 删除题目关联的选项、答案
+            for (Long questionId : questionIds) {
+                questionOptionMapper.deleteByQuestionId(questionId);
+                fillAnswerMapper.deleteByQuestionId(questionId);
+                paperQuestionMapper.deleteByQuestionId(questionId); // 兜底删除单题关联
+            }
+        }
+
+        // 步骤3：删除该题库下的所有题目
+        questionMapper.deleteByQuestionSetId(id);
+
+        // 步骤4：删除题库本身
         return questionSetMapper.deleteById(id);
+    }
+
+    /**
+     * 批量删除题库（级联删除）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int batchDeleteByIds(List<Long> ids) {
+        if (CollectionUtils.isEmpty(ids)) {
+            throw new IllegalArgumentException("题库ID列表不能为空");
+        }
+
+        int totalDelete = 0;
+        for (Long id : ids) {
+            totalDelete += deleteQuestionSetById(id); // 复用单个删除的级联逻辑
+        }
+        return totalDelete;
     }
 
     @Override

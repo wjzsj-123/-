@@ -1,4 +1,3 @@
-<!--QuestionSet.vue-->
 <template>
   <div class="question-set-detail">
     <!-- 题库基本信息 -->
@@ -8,6 +7,32 @@
       <div class="set-meta">
         <span>分类：{{ questionSet.category }}</span>
         <span>创建时间：{{ formatTime(questionSet.createTime) }}</span>
+      </div>
+    </div>
+
+    <!-- 新增：搜索筛选区 -->
+    <div class="search-filter">
+      <div class="search-input">
+        <input
+            type="text"
+            v-model="searchContent"
+            placeholder="输入题目内容搜索..."
+            @input="handleSearch"
+        >
+      </div>
+      <div class="filter-options">
+        <select v-model="selectedType" @change="handleSearch">
+          <option value="">所有题型</option>
+          <option value="1">单选题</option>
+          <option value="3">多选题</option>
+          <option value="2">填空题</option>
+        </select>
+        <select v-model="selectedDifficulty" @change="handleSearch">
+          <option value="">所有难度</option>
+          <option value="1">简单</option>
+          <option value="2">中等</option>
+          <option value="3">困难</option>
+        </select>
       </div>
     </div>
 
@@ -29,43 +54,75 @@
           ↓ 导入题目
         </button>
       </el-upload>
+
+      <!-- 新增：显示模式切换按钮 -->
+      <div class="display-mode-switch">
+        <button
+            :class="{ active: displayMode === 'full' }"
+            @click="displayMode = 'full'"
+        >
+          完整模式
+        </button>
+        <button
+            :class="{ active: displayMode === 'simple' }"
+            @click="displayMode = 'simple'"
+        >
+          简化模式
+        </button>
+      </div>
     </div>
 
     <!-- 题目列表 -->
     <div class="question-list">
+      <!-- 空状态区分：无题目 / 有题目但无匹配结果 -->
       <div v-if="questions.length === 0" class="empty-tip">
         该题库暂无题目，点击"新增题目"添加
       </div>
-      <div v-else class="question-item" v-for="(q, index) in questions" :key="q.id">
+      <div v-else-if="filteredQuestions.length === 0" class="empty-tip">
+        没有找到匹配的题目，请调整搜索条件
+      </div>
+      <!-- 核心修改：使用 filteredQuestions 渲染筛选后的列表 -->
+      <div v-else class="question-item" v-for="(q, index) in filteredQuestions" :key="q.id">
+        <!-- 通用头部（两种模式都显示） -->
         <div class="question-header">
           <span class="question-index">{{ index + 1 }}.</span>
           <span class="question-type">
-          {{ q.type === 1 ? '单选题' : q.type === 3 ? '多选题' : '填空题' }}
+            {{ q.type === 1 ? '单选题' : q.type === 3 ? '多选题' : '填空题' }}
           </span>
           <span class="question-difficulty">
             {{ getDifficultyText(q.difficulty) }}
           </span>
         </div>
-        <div class="question-content">{{ q.content }}</div>
 
-        <!-- 选择题选项展示 -->
-        <div v-if="q.type === 1 || q.type === 3" class="question-options">
-          <div v-for="(opt, i) in q.options" :key="opt.id">
-            <span class="option-letter">{{ String.fromCharCode(65 + i) }}.</span>
-            <span class="option-content">{{ opt.content }}</span>
-            <span v-if="opt.isCorrect === 1" class="correct-tag">正确答案</span>
+        <!-- 完整模式显示内容 -->
+        <div v-if="displayMode === 'full'">
+          <div class="question-content">{{ q.content }}</div>
+
+          <!-- 选择题选项展示 -->
+          <div v-if="q.type === 1 || q.type === 3" class="question-options">
+            <div v-for="(opt, i) in q.options" :key="opt.id">
+              <span class="option-letter">{{ String.fromCharCode(65 + i) }}.</span>
+              <span class="option-content">{{ opt.content }}</span>
+              <span v-if="opt.isCorrect === 1" class="correct-tag">正确答案</span>
+            </div>
+          </div>
+
+          <!-- 填空题答案展示 -->
+          <div v-if="q.type === 2" class="fill-answers">
+            <div>答案：
+              <span v-for="(ans, i) in q.fillAnswers" :key="ans.id">
+                第{{ i + 1 }}空：{{ ans.answer }} {{ i < q.fillAnswers.length - 1 ? '；' : '' }}
+              </span>
+            </div>
           </div>
         </div>
 
-        <!-- 填空题答案展示 -->
-        <div v-if="q.type === 2" class="fill-answers">
-          <div>答案：
-            <span v-for="(ans, i) in q.fillAnswers" :key="ans.id">
-              第{{ i + 1 }}空：{{ ans.answer }} {{ i < q.fillAnswers.length - 1 ? '；' : '' }}
-            </span>
-          </div>
+        <!-- 简化模式显示内容（只显示题目内容和操作按钮） -->
+        <div v-if="displayMode === 'simple'" class="simple-content">
+          <div class="question-content">{{ q.content }}</div>
         </div>
 
+        <!-- 操作按钮（两种模式都显示） -->
         <div class="question-actions">
           <button @click="handleEdit(q)">编辑</button>
           <button @click="handleDelete(q.id)">删除</button>
@@ -89,27 +146,63 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import QuestionForm from "@/views/QuestionForm.vue";
 import { ElMessage } from 'element-plus'; // 导入消息提示
 
+// 显示模式（默认完整模式）
+const displayMode = ref('full'); // 'full' 完整模式, 'simple' 简化模式
+
+// 搜索筛选相关变量
+const searchContent = ref('');
+const selectedType = ref('');
+const selectedDifficulty = ref('');
+const filteredQuestions = ref([]);
+
 // 路由参数（获取当前题库ID）
 const route = useRoute();
 const questionSetId = ref(route.params.id); // 假设路由为 /home/question-set/:id
-
 // 题库信息
 const questionSet = ref({});
-
 // 题目列表
 const questions = ref([]);
-console.log('获取到的题目列表数据:', questions)
 
 // 表单控制
 const showQuestionForm = ref(false);
 const currentEditQuestion = ref(null);
 
-// 新增：导入相关方法
+// 核心优化：筛选逻辑（增加空值处理，避免空指针）
+const handleSearch = () => {
+  // 空数组保护
+  if (!questions.value || questions.value.length === 0) {
+    filteredQuestions.value = [];
+    return;
+  }
+
+  filteredQuestions.value = questions.value.filter(question => {
+    // 内容筛选（兼容content为空的情况）
+    const contentMatch = !searchContent.value.trim()
+        || (question.content && question.content.toLowerCase().includes(searchContent.value.toLowerCase().trim()));
+
+    // 类型筛选（兼容type为空的情况）
+    const typeMatch = !selectedType.value
+        || (question.type !== undefined && question.type === Number(selectedType.value));
+
+    // 难度筛选（兼容difficulty为空的情况）
+    const difficultyMatch = !selectedDifficulty.value
+        || (question.difficulty !== undefined && question.difficulty === Number(selectedDifficulty.value));
+
+    return contentMatch && typeMatch && difficultyMatch;
+  });
+};
+
+// 新增：监听筛选条件变化，自动触发搜索（增强体验）
+watch([searchContent, selectedType, selectedDifficulty], () => {
+  handleSearch();
+}, { immediate: true });
+
+// 导入相关方法
 const beforeUpload = (file) => {
   // 校验文件类型
   const isExcel = file.type === 'application/vnd.ms-excel'
@@ -130,7 +223,7 @@ const beforeUpload = (file) => {
 const handleImportSuccess = (response) => {
   if (response.code === 0) {
     ElMessage.success(`导入成功，共导入${response.data}道题目`);
-    // 重新加载题目列表
+    // 重新加载题目列表并触发筛选
     getQuestions();
   } else {
     ElMessage.error(response.message || '导入失败');
@@ -160,13 +253,15 @@ const getQuestionSetDetail = async () => {
   }
 };
 
-// 获取题库下的所有题目
+// 获取题目列表后初始化筛选
 const getQuestions = async () => {
   try {
     const response = await fetch(`/api/question/question-set/${questionSetId.value}`);
     const result = await response.json();
     if (result.code === 0) {
       questions.value = result.data;
+      // 初始化筛选
+      handleSearch();
     }
   } catch (err) {
     console.error('获取题目列表失败', err);
@@ -202,12 +297,12 @@ const handleEdit = async (question) => {
       currentEditQuestion.value = JSON.parse(JSON.stringify(result.data));
       showQuestionForm.value = true;
     } else {
-      alert(result.message || '获取题目详情失败，无法编辑');
+      ElMessage.error(result.message || '获取题目详情失败，无法编辑');
       console.error('获取编辑数据失败:', result.message);
     }
   } catch (err) {
     console.error('编辑操作失败:', err);
-    alert('网络错误，无法加载编辑数据');
+    ElMessage.error('网络错误，无法加载编辑数据');
   }
 };
 
@@ -219,28 +314,29 @@ const handleDelete = async (id) => {
       const result = await response.json();
       if (result.code === 0) {
         getQuestions(); // 重新加载题目列表
+        ElMessage.success('删除成功');
       } else {
-        alert(result.message || '删除失败');
+        ElMessage.error(result.message || '删除失败');
       }
     } catch (err) {
       console.error('删除题目失败', err);
+      ElMessage.error('网络错误，删除失败');
     }
   }
 };
 
-// 题目保存成功后回调（修正后）
+// 题目保存成功后回调
 const onQuestionSaved = async (questionData) => {
   try {
-    // 1. 发送请求到后端新增/编辑题目接口（直接透传子组件处理后的questionData，不做二次转换）
+    // 1. 发送请求到后端新增/编辑题目接口
     const response = await fetch('/api/question', {
-      method: questionData.id ? 'PUT' : 'POST', // 有id则为编辑（PUT），无id则为新增（POST）
+      method: questionData.id ? 'PUT' : 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         ...questionData,
-        questionSetId: questionSetId.value // 仅确保题库ID（若子组件已传递，可省略，此处保留兜底）
-        // 关键：删除type和difficulty的重复转换逻辑！
+        questionSetId: questionSetId.value
       })
     });
 
@@ -249,16 +345,16 @@ const onQuestionSaved = async (questionData) => {
       // 2. 操作成功后关闭弹窗并刷新列表
       showQuestionForm.value = false;
       currentEditQuestion.value = null;
-      // 3. 局部刷新：重新加载题库详情和题目列表（核心修改）
-      await getQuestionSetDetail(); // 刷新题库信息
-      await getQuestions(); // 刷新题目列表
-      alert(questionData.id ? '编辑成功' : '新增成功');
+      // 3. 局部刷新：重新加载题库详情和题目列表
+      await getQuestionSetDetail();
+      await getQuestions();
+      ElMessage.success(questionData.id ? '编辑成功' : '新增成功');
     } else {
-      alert(result.message || '操作失败');
+      ElMessage.error(result.message || '操作失败');
     }
   } catch (err) {
     console.error('题目保存失败:', err);
-    alert('网络错误，保存失败');
+    ElMessage.error('网络错误，保存失败');
   }
 };
 
@@ -270,6 +366,36 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 搜索筛选样式 */
+.search-filter {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 1.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-input input {
+  width: 300px;
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.filter-options {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-options select {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+}
+
 .set-header {
   margin-bottom: 2rem;
   padding-bottom: 1rem;
@@ -420,5 +546,40 @@ onMounted(() => {
   padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
+}
+
+/* 显示模式切换按钮样式 */
+.display-mode-switch {
+  display: flex;
+  margin-left: 15px;
+}
+
+.display-mode-switch button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #42b983;
+  background: transparent;
+  color: #42b983;
+  cursor: pointer;
+}
+
+.display-mode-switch button:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.display-mode-switch button:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+.display-mode-switch button.active {
+  background-color: #42b983;
+  color: white;
+}
+
+/* 新增：简化模式样式 */
+.simple-content .simple-hint {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+  font-style: italic;
 }
 </style>

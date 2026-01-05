@@ -11,7 +11,10 @@ public interface QuestionSetService {
     int createQuestionSet(QuestionSet questionSet);
 
     // 根据ID删除题目集
-    int deleteQuestionSet(Long id);
+    int deleteQuestionSetById(Long id);
+
+    // 批量删除题目集
+    int batchDeleteByIds(List<Long> ids);
 
     // 更新题目集
     int updateQuestionSet(QuestionSet questionSet);

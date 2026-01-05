@@ -17,6 +17,13 @@ public interface QuestionMapper {
     // 根据ID删除题目
     int deleteById(Long id);
 
+    /**
+     * 根据题库ID查询所有题目ID（用于关联删除）
+     * @param questionSetId 题库ID
+     * @return 题目ID列表
+     */
+    List<Long> selectQuestionIdsByQuestionSetId(Long questionSetId);
+
     // 更新题目信息
     int updateById(Question question);
 
@@ -58,4 +65,11 @@ public interface QuestionMapper {
 
     // 新增：批量插入题目
     int batchInsert(List<Question> questionList);
+
+    // 新增方法：按条件查询题目
+    List<Question> selectByFilter(
+            @Param("questionSetId") Long questionSetId,
+            @Param("content") String content,
+            @Param("type") Integer type,
+            @Param("difficulty") Integer difficulty);
 }

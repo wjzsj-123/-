@@ -45,4 +45,8 @@ public interface QuestionService {
 
     // 根据用户ID统计题目数量
     int countByUserId(Long userId);
+
+    // 新增方法：按条件查询题库中的题目
+    List<Question> getQuestionsByFilter(
+            Long questionSetId, String content, Integer type, Integer difficulty);
 }

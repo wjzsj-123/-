@@ -37,57 +37,78 @@
         </select>
       </div>
 
-      <!-- 选项区域（单选题/多选题共用，通过类型区分交互） -->
-      <div v-if="form.type === 'option' || form.type === 'multiple'" class="options-group">
-        <label>选项设置</label>
-        <div v-for="(option, index) in form.options" :key="index" class="option-item">
-          <input
-              type="text"
-              v-model="option.content"
-              placeholder="选项内容"
-          >
-          <label class="checkbox-label">
-            <input
-                type="checkbox"
-                v-model="option.isCorrect"
-                :true-value="1"
-                :false-value="0"
-                :disabled="form.type === 'option' && hasCorrectOption && option.isCorrect === 0"
-            >
-            正确答案
-            <template v-if="form.type === 'option'">
-              <span class="single-hint">（单选题只能选择一个正确答案）</span>
-            </template>
-          </label>
-          <button
-              type="button"
-              class="remove-btn"
-              @click="removeOption(index)"
-              :disabled="form.options.length <= 2"
-          >
-            删除
-          </button>
+      <!-- 选项区域（添加滚动容器） -->
+      <div v-if="form.type === 'option' || form.type === 'multiple'" class="options-container">
+        <div class="options-header">
+          <label>选项设置</label>
+          <span class="option-count-tip">
+            当前{{ form.options.length }}/4个选项
+          </span>
         </div>
-        <button type="button" class="add-btn" @click="addOption">+ 添加选项</button>
+        <!-- 滚动区域 -->
+        <div class="options-scroll-wrapper">
+          <div v-for="(option, index) in form.options" :key="index" class="option-item">
+            <input
+                type="text"
+                v-model="option.content"
+                placeholder="选项内容"
+            >
+            <label class="checkbox-label">
+              <input
+                  type="checkbox"
+                  v-model="option.isCorrect"
+                  :true-value="1"
+                  :false-value="0"
+                  :disabled="form.type === 'option' && hasCorrectOption && option.isCorrect === 0"
+              >
+              正确答案
+              <template v-if="form.type === 'option'">
+                <span class="single-hint">（单选题只能选择一个正确答案）</span>
+              </template>
+            </label>
+            <button
+                type="button"
+                class="remove-btn"
+                @click="removeOption(index)"
+                :disabled="form.options.length <= 2"
+            >
+              删除
+            </button>
+          </div>
+        </div>
+        <button
+            type="button"
+            class="add-btn"
+            @click="addOption"
+            :disabled="form.options.length >= 4"
+        >
+          + 添加选项
+          <span v-if="form.options.length >= 4" class="max-tip">（最多4个选项）</span>
+        </button>
       </div>
 
-      <!-- 填空题答案区域 -->
-      <div v-if="form.type === 'fill'" class="fill-answers-group">
-        <label>答案设置</label>
-        <div v-for="(answer, index) in form.fillAnswers" :key="index" class="answer-item">
-          <input
-              type="text"
-              v-model="answer.answer"
-              placeholder="第{{ index + 1 }}个空的答案"
-          >
-          <button
-              type="button"
-              class="remove-btn"
-              @click="removeAnswer(index)"
-              :disabled="form.fillAnswers.length <= 1"
-          >
-            删除
-          </button>
+      <!-- 填空题答案区域（添加滚动容器） -->
+      <div v-if="form.type === 'fill'" class="fill-answers-container">
+        <div class="fill-answers-header">
+          <label>答案设置</label>
+        </div>
+        <!-- 滚动区域 -->
+        <div class="fill-answers-scroll-wrapper">
+          <div v-for="(answer, index) in form.fillAnswers" :key="index" class="answer-item">
+            <input
+                type="text"
+                v-model="answer.answer"
+                placeholder="第{{ index + 1 }}个空的答案"
+            >
+            <button
+                type="button"
+                class="remove-btn"
+                @click="removeAnswer(index)"
+                :disabled="form.fillAnswers.length <= 1"
+            >
+              删除
+            </button>
+          </div>
         </div>
         <button type="button" class="add-btn" @click="addAnswer">+ 添加空</button>
       </div>
@@ -139,11 +160,13 @@ const form = ref({
           : props.editData.difficulty === 2 ? 'medium'
               : props.editData.difficulty === 3 ? 'hard' : '')
       : '',
-  // 选择题/多选题选项
-  options: props.editData && props.editData.options ? [...props.editData.options] : [
-    { content: '', isCorrect: 0, sortOrder: 1 },
-    { content: '', isCorrect: 0, sortOrder: 2 }
-  ],
+  // 选择题/多选题选项（初始化最多2个，限制最大4个）
+  options: props.editData && props.editData.options
+      ? [...props.editData.options.slice(0, 4)]  // 编辑时最多保留4个选项
+      : [
+        { content: '', isCorrect: 0, sortOrder: 1 },
+        { content: '', isCorrect: 0, sortOrder: 2 }
+      ],
   // 填空题答案
   fillAnswers: props.editData && props.editData.fillAnswers ? [...props.editData.fillAnswers] : [
     { answer: '', sortOrder: 1 }
@@ -164,6 +187,10 @@ watch(() => form.value.type, (newType, oldType) => {
     form.value.options.forEach(option => {
       option.isCorrect = 0;
     });
+    // 切换类型时如果选项数超过4个，自动截断到4个
+    if (form.value.options.length > 4) {
+      form.value.options = form.value.options.slice(0, 4);
+    }
   }
   // 当切换到填空题时，不重置答案内容（保留填空文本）
   // 如需清空可取消注释以下代码
@@ -191,8 +218,10 @@ watch(() => form.value.options, (newOptions) => {
   }
 }, { deep: true });
 
-// 添加选项
+// 添加选项（限制最多4个）
 const addOption = () => {
+  if (form.value.options.length >= 4) return;
+
   form.value.options.push({
     content: '',
     isCorrect: 0,
@@ -324,17 +353,18 @@ const handleSubmit = () => {
       return;
   }
 
-  // 6. 构建提交数据
+  // 6. 构造提交数据
   const submitData = {
-    ...form.value,
+    id: form.value.id,
+    questionSetId: form.value.questionSetId,
+    content: form.value.content,
     type: typeInt,
     difficulty: difficultyInt,
-    // 清除无关字段
-    options: ['option', 'multiple'].includes(form.value.type) ? form.value.options : undefined,
-    fillAnswers: form.value.type === 'fill' ? form.value.fillAnswers : undefined
+    options: form.value.options,
+    fillAnswers: form.value.fillAnswers
   };
 
-  // 7. 提交给父组件
+  // 7. 触发保存事件
   emit('save', submitData);
 };
 
@@ -345,119 +375,228 @@ const handleCancel = () => {
 </script>
 
 <style scoped>
-/* 样式部分保持不变 */
 .question-form {
-  padding: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #fff;
   border-radius: 8px;
-  background-color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+h4 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 1.4rem;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 20px;
 }
 
 label {
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 8px;
   color: #666;
   font-weight: 500;
 }
 
 .required {
-  color: #ff4444;
+  color: #ff4d4f;
 }
 
-textarea, select, input {
+textarea, select, input[type="text"] {
   width: 100%;
-  padding: 0.6rem;
-  border: 1px solid #ddd;
+  padding: 10px;
+  border: 1px solid #dcdfe6;
   border-radius: 4px;
-  font-size: 1rem;
+  font-size: 14px;
+  box-sizing: border-box;
 }
 
 textarea {
   resize: vertical;
 }
 
-.options-group, .fill-answers-group {
-  margin: 1rem 0;
-  padding: 1rem;
-  border: 1px dashed #ddd;
+/* 选项容器样式 - 新增滚动功能 */
+.options-container, .fill-answers-container {
+  margin-bottom: 20px;
+  border: 1px solid #e6e6e6;
   border-radius: 4px;
+  padding: 15px;
+}
+
+.options-header, .fill-answers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.option-count-tip {
+  font-size: 12px;
+  color: #999;
+}
+
+/* 选项滚动区域 */
+.options-scroll-wrapper, .fill-answers-scroll-wrapper {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 15px;
+  padding-right: 5px;
+}
+
+/* 滚动条样式优化 */
+.options-scroll-wrapper::-webkit-scrollbar,
+.fill-answers-scroll-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.options-scroll-wrapper::-webkit-scrollbar-track,
+.fill-answers-scroll-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.options-scroll-wrapper::-webkit-scrollbar-thumb,
+.fill-answers-scroll-wrapper::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.options-scroll-wrapper::-webkit-scrollbar-thumb:hover,
+.fill-answers-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }
 
 .option-item, .answer-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.8rem;
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  gap: 10px;
 }
 
-.option-item input[type="text"],
-.answer-item input[type="text"] {
+.option-item input[type="text"] {
   flex: 1;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  margin: 0 10px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
-.add-btn, .remove-btn {
-  padding: 0.3rem 0.8rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
+.checkbox-label input {
+  width: auto;
+  margin-right: 5px;
 }
 
-.add-btn {
-  background-color: #42b983;
-  color: white;
-  margin-top: 0.5rem;
+.single-hint {
+  font-size: 12px;
+  color: #999;
+  margin-left: 5px;
 }
 
 .remove-btn {
-  background-color: #ff4444;
-  color: white;
+  padding: 6px 10px;
+  background: #fff;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .remove-btn:disabled {
-  background-color: #ffcccc;
+  opacity: 0.5;
   cursor: not-allowed;
+}
+
+.remove-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+  color: #ff4d4f;
+  border-color: #ff4d4f;
+}
+
+.add-btn {
+  padding: 8px 16px;
+  background: #f5f5f5;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  color: #666;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.add-btn:hover:not(:disabled) {
+  background: #e8e8e8;
+}
+
+.max-tip {
+  font-size: 12px;
+  color: #ff4d4f;
 }
 
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-.submit-btn, .cancel-btn {
-  padding: 0.6rem 1.2rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-}
-
-.submit-btn {
-  background-color: #42b983;
-  color: white;
+  gap: 10px;
+  margin-top: 30px;
 }
 
 .cancel-btn {
-  background-color: #f5f5f5;
-  color: #333;
+  padding: 8px 16px;
+  background: #fff;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  color: #666;
+  cursor: pointer;
 }
 
-.single-hint {
-  color: #666;
-  font-size: 0.85rem;
-  margin-left: 8px;
+.cancel-btn:hover {
+  background: #f5f5f5;
+}
+
+.submit-btn {
+  padding: 8px 16px;
+  background: #42b983;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.submit-btn:hover {
+  background: #36a371;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .option-item, .answer-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .checkbox-label {
+    margin: 10px 0;
+  }
+
+  .options-scroll-wrapper, .fill-answers-scroll-wrapper {
+    max-height: 150px;
+  }
 }
 </style>

@@ -22,6 +22,15 @@
         </foreach>
     </insert>
 
+    <!-- 根据题目ID列表查询关联的PaperId -->
+    <select id="selectPaperIdsByQuestionIds" resultType="java.lang.Long">
+        SELECT DISTINCT paper_id FROM paper_question
+        WHERE question_id IN
+        <foreach collection="questionIds" item="questionId" open="(" separator="," close=")">
+            #{questionId}
+        </foreach>
+    </select>
+
     <!-- 根据ID删除 -->
     <delete id="deleteById" parameterType="java.lang.Long">
         DELETE FROM paper_question WHERE id = #{id}
@@ -30,6 +39,15 @@
     <!-- 根据试卷ID批量删除 -->
     <delete id="deleteByPaperId" parameterType="java.lang.Long">
         DELETE FROM paper_question WHERE paper_id = #{paperId}
+    </delete>
+
+    <!-- 根据PaperId批量删除PaperQuestion -->
+    <delete id="deleteByPaperIds">
+        DELETE FROM paper_question
+        WHERE paper_id IN
+        <foreach collection="paperIds" item="paperId" open="(" separator="," close=")">
+            #{paperId}
+        </foreach>
     </delete>
 
     <!-- 根据题目ID删除 -->

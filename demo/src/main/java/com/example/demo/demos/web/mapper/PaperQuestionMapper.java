@@ -2,6 +2,7 @@ package com.example.demo.demos.web.mapper;
 
 import com.example.demo.demos.web.pojo.PaperQuestion;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -13,11 +14,17 @@ public interface PaperQuestionMapper {
     // 批量新增关联关系
     int batchInsert(List<PaperQuestion> paperQuestions);
 
+    //根据题目ID列表查询关联的PaperId
+    List<Long> selectPaperIdsByQuestionIds(@Param("questionIds") List<Long> questionIds);
+
     // 根据ID删除关联关系
     int deleteById(Long id);
 
     // 根据试卷ID批量删除关联关系（删除试卷时联动）
     int deleteByPaperId(Long paperId);
+
+    //根据PaperId批量删除PaperQuestion关联记录
+    int deleteByPaperIds(@Param("paperIds") List<Long> paperIds);
 
     // 根据题目ID删除关联关系（删除题目时联动）
     int deleteByQuestionId(Long questionId);

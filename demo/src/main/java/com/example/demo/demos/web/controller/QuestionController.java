@@ -93,4 +93,33 @@ public class QuestionController {
             return Result.error("查询题目总数失败：" + e.getMessage());
         }
     }
+
+    /**
+     * 按条件查询题库中的题目
+     * @param questionSetId 题库ID
+     * @param content 题目内容（模糊搜索）
+     * @param type 题目类型
+     * @param difficulty 难度等级
+     * @return 符合条件的题目列表
+     */
+    @GetMapping("/question-set/{questionSetId}/filter")
+    public Result getQuestionsByFilter(
+            @PathVariable Long questionSetId,
+            @RequestParam(required = false) String content,
+            @RequestParam(required = false) Integer type,
+            @RequestParam(required = false) Integer difficulty) {
+        try {
+            if (questionSetId == null) {
+                return Result.error("题库ID不能为空");
+            }
+            // 调用服务层方法查询符合条件的题目
+            List<Question> questions = questionService.getQuestionsByFilter(
+                    questionSetId, content, type, difficulty);
+            return Result.success("查询成功", questions);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("查询题目失败：" + e.getMessage());
+        }
+    }
 }

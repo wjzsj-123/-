@@ -34,6 +34,11 @@
         DELETE FROM question WHERE id = #{id}
     </delete>
 
+    <!-- 根据题库ID查询所有题目ID -->
+    <select id="selectQuestionIdsByQuestionSetId" resultType="java.lang.Long">
+        SELECT id FROM question WHERE question_set_id = #{questionSetId}
+    </select>
+
     <!-- 更新 -->
     <update id="updateById" parameterType="com.example.demo.demos.web.pojo.Question">
         UPDATE question
@@ -160,4 +165,26 @@
             (#{item.questionSetId}, #{item.content}, #{item.type}, #{item.difficulty}, #{item.createTime}, #{item.updateTime})
         </foreach>
     </insert>
+
+    <!-- 按条件查询题库中的题目 -->
+    <select id="selectByFilter" resultType="com.example.demo.demos.web.pojo.Question">
+        SELECT
+        id, question_set_id, content, type, difficulty,
+        create_time, update_time, sort_order
+        FROM question
+        WHERE question_set_id = #{questionSetId}
+        <!-- 模糊匹配题目内容 -->
+        <if test="content != null and content != ''">
+            AND content LIKE CONCAT('%', #{content}, '%')
+        </if>
+        <!-- 筛选题目类型 -->
+        <if test="type != null">
+            AND type = #{type}
+        </if>
+        <!-- 筛选难度等级 -->
+        <if test="difficulty != null">
+            AND difficulty = #{difficulty}
+        </if>
+        ORDER BY sort_order ASC
+    </select>
 </mapper>

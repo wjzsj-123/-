@@ -2,6 +2,7 @@ package com.example.demo.demos.web.mapper;
 
 import com.example.demo.demos.web.pojo.Paper;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -12,6 +13,9 @@ public interface PaperMapper {
 
     // 根据ID删除试卷
     int deleteById(Long id);
+
+    // 批量删除Paper
+    int batchDeleteByIds(@Param("ids") List<Long> ids);
 
     // 更新试卷信息
     int updateById(Paper paper);
