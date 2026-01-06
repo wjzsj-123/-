@@ -73,4 +73,18 @@ public interface QuestionSetMapper {
 
     // 导入公共题库（插入新的私有题库）
     int insertImportedQuestionSet(QuestionSet questionSet);
+
+    /**
+     * 更新题库公共状态（含发布人、发布时间）
+     * @param id 题库ID
+     * @param isPublic 公共状态（1-公共，0-私有）
+     * @param publisherId 发布人ID（私有状态传null）
+     * @param publishTime 发布时间（私有状态传null）
+     * @return 受影响行数
+     */
+    int updatePublicStatus(
+            @Param("id") Long id,
+            @Param("isPublic") Integer isPublic,
+            @Param("publisherId") Long publisherId,
+            @Param("publishTime") LocalDateTime publishTime);
 }

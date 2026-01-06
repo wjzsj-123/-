@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/question-set")
@@ -344,7 +345,7 @@ public class QuestionSetController {
      * @param publicSetId 公共题库ID
      * @param userId 导入用户ID（实际场景从登录态获取）
      */
-    @PostMapping("/import/{publicSetId}")
+    @PostMapping("/public/import/{publicSetId}")
     public Result importPublicQuestionSet(
             @PathVariable Long publicSetId,
             @RequestParam Long userId
@@ -356,6 +357,30 @@ public class QuestionSetController {
             return Result.error(e.getMessage());
         } catch (Exception e) {
             return Result.error("导入失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 更新题库公共状态（含发布人、发布时间）
+     * @param id 题库ID
+     * @param isPublic 公共状态（true-公共，false-私有）
+     * @param publisherId 发布人ID（公共状态时必填）
+     * @return 操作结果
+     */
+    @PutMapping("/{id}/public-status")
+    public Result updatePublicStatus(
+            @PathVariable Long id,
+            @RequestParam Boolean isPublic,
+            @RequestParam(required = false) Long publisherId) { // 私有状态时非必填
+        try {
+            int count = questionSetService.updatePublicStatus(id, isPublic, publisherId);
+            return count > 0
+                    ? Result.success("更新题库公共状态成功")
+                    : Result.error("未找到该题库或状态无变更");
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("更新题库公共状态失败：" + e.getMessage());
         }
     }
 }

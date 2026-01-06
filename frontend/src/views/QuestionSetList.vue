@@ -115,7 +115,21 @@ const router = useRouter();
 const questionSets = ref([]);
 const searchName = ref('');
 const selectedCategory = ref('');
-const categories = ref(['编程语言', '数据库', '操作系统', '计算机网络']);
+const categories = ref([
+  '编程语言',
+  '数据库',
+  '操作系统',
+  '计算机网络',
+  '语文',
+  '数学',
+  '英语',
+  '线性代数',
+  '高等数学',
+  '概率论与数理统计',
+  '数据结构',
+  '算法分析',
+  '软件工程'
+]);
 const loading = ref(false);  // 新增：加载状态
 
 // 编辑相关状态

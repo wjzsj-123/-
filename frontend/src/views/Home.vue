@@ -23,6 +23,9 @@
           <router-link to="/home/paper">试卷管理</router-link>
         </li>
         <li>
+          <router-link to="/home/online-bank">在线题库</router-link>
+        </li>
+        <li>
           <router-link to="/home/user/profile">个人信息</router-link>
         </li>
       </ul>

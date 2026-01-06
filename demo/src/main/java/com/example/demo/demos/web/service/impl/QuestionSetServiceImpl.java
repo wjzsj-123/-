@@ -388,7 +388,7 @@ public class QuestionSetServiceImpl implements QuestionSetService {
         newPrivateSet.setUpdateTime(LocalDateTime.now());
         // 插入新私有题库
         questionSetMapper.insertImportedQuestionSet(newPrivateSet);
-        Long newSetId = newPrivateSet.getId(); // 需确保insert后返回自增ID（XML中配置useGeneratedKeys="true" keyProperty="id"）
+        Long newSetId = newPrivateSet.getId();
 
         // 4. 复制公共题库下的所有题目
         List<Question> publicQuestions = questionMapper.selectByQuestionSetId(publicSetId); // 需实现题目查询方法
@@ -430,5 +430,28 @@ public class QuestionSetServiceImpl implements QuestionSetService {
         }
 
         return newSetId; // 返回新私有题库ID
+    }
+
+    @Override
+    public int updatePublicStatus(Long id, Boolean isPublic, Long publisherId) {
+        // 严格遵循现有代码的参数校验风格
+        if (id == null) {
+            throw new IllegalArgumentException("题库ID不能为空");
+        }
+        if (isPublic == null) {
+            throw new IllegalArgumentException("公共状态不能为空");
+        }
+        // 公共状态时，发布人ID必填
+        if (isPublic && publisherId == null) {
+            throw new IllegalArgumentException("发布人ID不能为空（公共题库必须指定发布人）");
+        }
+
+        // 转换Boolean为数据库存储的Integer（1/0）
+        Integer publicStatus = isPublic ? 1 : 0;
+        // 公共状态：设置发布时间为当前时间；私有状态：清空发布人+发布时间（可根据业务调整）
+        LocalDateTime publishTime = isPublic ? LocalDateTime.now() : null;
+        publisherId = isPublic ? publisherId : null;
+
+        return questionSetMapper.updatePublicStatus(id, publicStatus, publisherId, publishTime);
     }
 }

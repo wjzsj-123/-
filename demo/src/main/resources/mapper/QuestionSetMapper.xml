@@ -3,7 +3,7 @@
 
 <mapper namespace="com.example.demo.demos.web.mapper.QuestionSetMapper">
     <sql id="BaseColumnList">
-        id, name, description, category, user_id, create_time, update_time
+        id, name, description, category, user_id, create_time, update_time, is_public
     </sql>
 
     <!-- 新增题库 -->
@@ -114,23 +114,37 @@
 
     <!-- 查询公共题库列表 -->
     <select id="selectPublicQuestionSets" resultType="com.example.demo.demos.web.pojo.QuestionSet">
-        SELECT <include refid="BaseColumnList"/>, is_public, publisher_id, publish_time
+        SELECT id, user_id, name, category, create_time, update_time, is_public, publisher_id, publish_time
         FROM question_set
         WHERE is_public = 1
         <if test="category != null and category != ''">
             AND category = #{category}
         </if>
-        <if test="name != null">
-            AND name LIKE #{name}
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
         </if>
         ORDER BY publish_time DESC
     </select>
 
     <!-- 导入公共题库（插入新私有题库） -->
-    <insert id="insertImportedQuestionSet" parameterType="com.example.demo.demos.web.pojo.QuestionSet">
-        INSERT INTO question_set
-        (user_id, name, category, create_time, update_time, is_public, publisher_id, publish_time)
-        VALUES
-            (#{userId}, #{name}, #{category}, #{createTime}, #{updateTime}, 0, null, null)
+    <insert id="insertImportedQuestionSet" parameterType="com.example.demo.demos.web.pojo.QuestionSet"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO question_set (
+            user_id, name, description, category,
+            is_public, create_time, update_time
+        ) VALUES (
+                     #{userId}, #{name}, #{description}, #{category},
+                     #{isPublic}, #{createTime}, #{updateTime}
+                 )
     </insert>
+
+    <!-- 更新公/私有状态-->
+    <update id="updatePublicStatus">
+        UPDATE question_set
+        SET is_public = #{isPublic},
+            publisher_id = #{publisherId},
+            publish_time = #{publishTime},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
 </mapper>

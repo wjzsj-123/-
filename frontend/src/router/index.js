@@ -19,41 +19,50 @@ const routes = [
         component: Home,
         children: [
             { path: '', name: 'Home', component: HomeContent },
-            // 子路由路径不需要带 /home 前缀（相对路径）
+            // 题库路由
             {
                 path: 'question-set',  // 对应完整路径 /home/question-set
                 component: () => import('@/views/QuestionSetList.vue'),
                 meta: { requiresAuth: true }
             },
+            // 添加题库路由
             {
-                path: 'question-set/add',  // 对应完整路径 /home/question-set/add
+                path: 'question-set/add',
                 component: () => import('@/views/QuestionSetForm.vue'),
                 meta: { requiresAuth: true }
             },
+            // 题库详情页（含题目管理）
             {
-                path: 'question-set/:id', // 题库详情页（含题目管理）
+                path: 'question-set/:id',
                 component: () => import('@/views/QuestionSet.vue'),
                 meta: { requiresAuth: true }
             },
             { path: 'paper', component: Paper },
-            // 添加生成试卷路由（作为home的子路由，保持路径一致性）
+            // 添加生成试卷路由
             {
                 path: 'paper/generate',
                 component: GeneratePaper,
                 meta: { requiresAuth: true }
             },
-            // 新增答题页面路由（与paper/generate同级，扁平结构）
+            // 答题页面路由
             {
                 path: 'paper/answer/:paperId',
                 component: () => import('@/views/PaperDetail.vue'),
                 name: 'PaperDetail',
                 meta: { requiresAuth: true }
             },
-            // 新增查看答案页面路由（可选）
+            // 查看答案页面路由
             {
                 path: 'paper/result/:paperId',
                 component: () => import('@/views/PaperResult.vue'),
                 name: 'PaperResult',
+                meta: { requiresAuth: true }
+            },
+            // 在线题库
+            {
+                path: 'online-bank', // home 子路径：/home/online-bank
+                component: () => import('@/views/OnlineQuestionBank.vue'),
+                name: 'OnlineQuestionBank',
                 meta: { requiresAuth: true }
             },
             { path: 'user/profile', component: UserProfile }
@@ -73,10 +82,11 @@ router.beforeEach((to, from, next) => {
         '/home',
         '/home/question-set',
         '/home/paper',
-        '/home/paper/generate',  // 新增路径
+        '/home/paper/generate',
+        '/home/paper/answer/:paperId',
+        '/home/paper/result/:paperId',
         '/home/user/profile',
-        '/home/paper/answer/:paperId', // 新增
-        '/home/paper/result/:paperId', // 新增（可选）
+        '/home/online-bank',
     ];
 
     if (requireAuthPaths.includes(to.path)) {

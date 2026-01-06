@@ -48,7 +48,21 @@ import { useRouter, useRoute } from 'vue-router';
 const router = useRouter();
 const route = useRoute();
 const isEdit = ref(!!route.params.id); // 根据是否有ID判断是编辑还是新增
-const categories = ref(['编程语言', '数据库', '操作系统', '计算机网络']);
+const categories = ref([
+  '编程语言',
+  '数据库',
+  '操作系统',
+  '计算机网络',
+  '语文',
+  '数学',
+  '英语',
+  '线性代数',
+  '高等数学',
+  '概率论与数理统计',
+  '数据结构',
+  '算法分析',
+  '软件工程'
+]);
 
 // 表单数据
 const form = ref({

@@ -75,4 +75,13 @@ public interface QuestionSetService {
      * @return 新私有题库ID
      */
     Long importPublicQuestionSet(Long publicSetId, Long userId);
+
+    /**
+     * 更新题库公共状态（含发布人、发布时间）
+     * @param id 题库ID
+     * @param isPublic 公共状态（true-公共，false-私有）
+     * @param publisherId 发布人ID（公共状态时必填）
+     * @return 受影响行数
+     */
+    int updatePublicStatus(Long id, Boolean isPublic, Long publisherId);
 }

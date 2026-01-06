@@ -7,10 +7,13 @@
       <div class="set-meta">
         <span>分类：{{ questionSet.category }}</span>
         <span>创建时间：{{ formatTime(questionSet.createTime) }}</span>
+        <span class="public-status">
+          状态：{{ isPublic ? '公有' : '私有' }}
+        </span>
       </div>
     </div>
 
-    <!-- 新增：搜索筛选区 -->
+    <!-- 搜索筛选区 -->
     <div class="search-filter">
       <div class="search-input">
         <input
@@ -55,7 +58,7 @@
         </button>
       </el-upload>
 
-      <!-- 新增：显示模式切换按钮 -->
+      <!-- 显示模式切换按钮 -->
       <div class="display-mode-switch">
         <button
             :class="{ active: displayMode === 'full' }"
@@ -70,6 +73,17 @@
           简化模式
         </button>
       </div>
+
+      <!-- 公有/私有切换按钮 -->
+      <button
+          class="public-switch-btn"
+          :class="{ public: isPublic, private: !isPublic }"
+          @click="togglePublicStatus"
+          :disabled="isSwitchLoading"
+      >
+        <span v-if="isSwitchLoading">切换中...</span>
+        <span v-else>{{ isPublic ? '设为私有' : '设为公有' }}</span>
+      </button>
     </div>
 
     <!-- 题目列表 -->
@@ -168,11 +182,15 @@ const questionSet = ref({});
 // 题目列表
 const questions = ref([]);
 
+// 公有/私有状态管理
+const isPublic = ref(false); // 当前是否为公有题库
+const isSwitchLoading = ref(false); // 切换状态loading
+
 // 表单控制
 const showQuestionForm = ref(false);
 const currentEditQuestion = ref(null);
 
-// 核心优化：筛选逻辑（增加空值处理，避免空指针）
+// 筛选逻辑
 const handleSearch = () => {
   // 空数组保护
   if (!questions.value || questions.value.length === 0) {
@@ -197,7 +215,7 @@ const handleSearch = () => {
   });
 };
 
-// 新增：监听筛选条件变化，自动触发搜索（增强体验）
+// 监听筛选条件变化，自动触发搜索（增强体验）
 watch([searchContent, selectedType, selectedDifficulty], () => {
   handleSearch();
 }, { immediate: true });
@@ -234,7 +252,7 @@ const handleImportError = () => {
   ElMessage.error('文件上传失败，请检查网络或文件格式');
 };
 
-// 新增方法：处理新增题目逻辑
+// 处理新增题目逻辑
 const handleAddQuestion = () => {
   currentEditQuestion.value = null; // 关键：清空编辑数据
   showQuestionForm.value = true;    // 显示表单
@@ -247,9 +265,59 @@ const getQuestionSetDetail = async () => {
     const result = await response.json();
     if (result.code === 0) {
       questionSet.value = result.data;
+      isPublic.value = result.data.isPublic === 1;
     }
   } catch (err) {
     console.error('获取题库详情失败', err);
+  }
+};
+
+// 切换公有/私有状态
+const togglePublicStatus = async () => {
+  try {
+    isSwitchLoading.value = true;
+    // 1. 获取当前登录用户ID（从localStorage中读取，需和登录逻辑保持一致）
+    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    const publisherId = userInfo.id;
+
+    // 2. 构造请求参数：isPublic（目标状态） + publisherId（发布人ID）
+    const targetStatus = !isPublic.value;
+    const params = new URLSearchParams();
+    params.append('isPublic', targetStatus);
+    // 公有状态时必传发布人ID，私有状态不传
+    if (targetStatus) {
+      if (!publisherId) {
+        ElMessage.error('请先登录后再将题库设为公有');
+        isSwitchLoading.value = false;
+        return;
+      }
+      params.append('publisherId', publisherId);
+    }
+
+    // 3. 调用后端PUT接口（适配后端路径和请求方式）
+    const response = await fetch(`/api/question-set/${questionSetId.value}/public-status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded', // 适配form-data参数格式
+      },
+      body: params
+    });
+
+    const result = await response.json();
+    if (result.code === 0) {
+      // 4. 更新前端状态
+      isPublic.value = targetStatus;
+      ElMessage.success(`题库已${isPublic.value ? '设为公有' : '设为私有'}`);
+      // 重新获取题库详情（同步最新状态）
+      getQuestionSetDetail();
+    } else {
+      ElMessage.error(result.message || '切换状态失败');
+    }
+  } catch (err) {
+    ElMessage.error('网络错误，切换状态失败');
+    console.error('切换公有/私有失败', err);
+  } finally {
+    isSwitchLoading.value = false;
   }
 };
 
@@ -366,6 +434,50 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.set-meta .public-status {
+  margin-left: 15px;
+  color: #42b983;
+  font-weight: 500;
+}
+
+.question-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+
+.public-switch-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.public-switch-btn.public {
+  background-color: #ff7875;
+  color: white;
+}
+
+.public-switch-btn.private {
+  background-color: #42b983;
+  color: white;
+}
+
+.public-switch-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.public-switch-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}
+
 /* 搜索筛选样式 */
 .search-filter {
   display: flex;
