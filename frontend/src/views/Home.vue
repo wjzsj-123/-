@@ -2,7 +2,7 @@
   <div class="home-container">
     <!-- 顶部导航栏 -->
     <nav class="main-nav">
-      <div class="logo">题库系统</div>
+      <div class="logo">自主学习平台</div>
       <div class="user-info">
         <span>{{ userInfo.nickname || userInfo.username }}</span>
         <button @click="handleLogout" class="logout-btn">退出登录</button>

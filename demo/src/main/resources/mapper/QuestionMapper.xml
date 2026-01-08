@@ -187,4 +187,22 @@
         </if>
         ORDER BY sort_order ASC
     </select>
+
+    <!-- 随机查询题库下题目ID（适配随机抽题场景） -->
+    <select id="selectRandomQuestionIdsBySetId" resultType="java.lang.Long">
+        SELECT id FROM question
+        WHERE question_set_id = #{questionSetId}
+        ORDER BY RAND()
+            LIMIT #{limit}
+    </select>
+
+    <!-- 根据ID列表查询题目（关联选项/填空答案） -->
+    <select id="selectQuestionListByIds" resultMap="QuestionWithRelationsResultMap">
+        SELECT <include refid="BaseColumnList"/>
+        FROM question
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
 </mapper>

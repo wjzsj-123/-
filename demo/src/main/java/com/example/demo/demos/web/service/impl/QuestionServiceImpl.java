@@ -8,6 +8,7 @@ import com.example.demo.demos.web.pojo.Question;
 import com.example.demo.demos.web.pojo.QuestionOption;
 import com.example.demo.demos.web.pojo.FillAnswer;
 import com.example.demo.demos.web.service.QuestionService;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import javax.annotation.Resource;
@@ -213,5 +214,21 @@ public class QuestionServiceImpl implements QuestionService {
         }
         // 调用Mapper层方法执行查询
         return questionMapper.selectByFilter(questionSetId, content, type, difficulty);
+    }
+
+    @Override
+    public List<Question> getRandomQuestions(Long questionSetId, Integer limit) {
+        if (questionSetId == null) {
+            throw new IllegalArgumentException("题库ID不能为空");
+        }
+        if (limit == null || limit <= 0) {
+            limit = 10;
+        }
+
+        List<Long> randomQuestionIds = questionMapper.selectRandomQuestionIdsBySetId(questionSetId, limit);
+        if (CollectionUtils.isEmpty(randomQuestionIds)) {
+            throw new IllegalArgumentException("该题库下暂无可用题目");
+        }
+        return questionMapper.selectQuestionListByIds(randomQuestionIds);
     }
 }

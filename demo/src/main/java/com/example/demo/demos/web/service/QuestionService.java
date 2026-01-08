@@ -49,4 +49,7 @@ public interface QuestionService {
     // 新增方法：按条件查询题库中的题目
     List<Question> getQuestionsByFilter(
             Long questionSetId, String content, Integer type, Integer difficulty);
+
+    // 随机获取题目
+    List<Question> getRandomQuestions(Long questionSetId, Integer limit);
 }

@@ -124,7 +124,6 @@ const handleRegister = async () => {
 </script>
 
 <style scoped>
-/* 与Login.vue样式完全一致，确保布局统一 */
 .auth-container {
   display: flex;
   justify-content: center;
@@ -136,84 +135,75 @@ const handleRegister = async () => {
 
 .auth-card {
   width: 100%;
-  padding: 3.5rem;
+  max-width: 400px; /* 核心：缩小最大宽度 */
+  padding: 2rem; /* 核心：减少内边距 */
   background: white;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
   width: 90vw;
-  max-width: 650px;
+  max-width: 400px;
 }
 
 h2 {
   text-align: center;
-  margin-bottom: 2.5rem;
+  margin-bottom: 1.5rem; /* 减少间距 */
   color: #1a1a1a;
-  font-size: 2.2rem;
+  font-size: 1.8rem; /* 核心：缩小字体 */
   font-weight: 600;
 }
 
 .form-group {
-  margin-bottom: 2rem;
+  margin-bottom: 1.2rem; /* 减少间距 */
 }
 
 label {
   display: block;
-  margin-bottom: 1rem;
+  margin-bottom: 0.6rem; /* 减少间距 */
   color: #4e5969;
-  font-size: 1.3rem;
+  font-size: 1rem; /* 核心：缩小字体 */
   font-weight: 500;
 }
 
 input {
   width: 100%;
-  padding: 1.2rem;
+  padding: 0.8rem; /* 核心：减少内边距 */
   border: 1px solid #d0d5dd;
   border-radius: 8px;
-  font-size: 1.3rem;
+  font-size: 1rem; /* 核心：缩小字体 */
   transition: all 0.3s ease;
-  height: 60px;
-}
-
-input:focus {
-  outline: none;
-  border-color: #42b983;
-  box-shadow: 0 0 0 3px rgba(66, 185, 131, 0.2);
+  height: 45px; /* 核心：降低高度 */
 }
 
 .error-message {
   color: #ff4d4f;
-  margin: 1.5rem 0;
-  padding: 1rem;
+  margin: 1rem 0; /* 减少间距 */
+  padding: 0.8rem; /* 减少内边距 */
   border-radius: 6px;
   background-color: #fff2f0;
   text-align: center;
-  font-size: 1.2rem;
+  font-size: 1rem; /* 核心：缩小字体 */
 }
 
 .auth-btn {
   width: 100%;
-  padding: 1.2rem;
+  padding: 0.8rem; /* 核心：减少内边距 */
   background-color: #42b983;
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 1.3rem;
+  font-size: 1rem; /* 核心：缩小字体 */
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.3s;
-  margin-top: 1.5rem;
-  height: 60px;
-}
-
-.auth-btn:hover {
-  background-color: #359e75;
+  margin-top: 1rem; /* 减少间距 */
+  height: 45px; /* 核心：降低高度 */
 }
 
 .auth-switch {
   text-align: center;
-  margin-top: 2rem;
+  margin-top: 1.2rem; /* 减少间距 */
   color: #667085;
-  font-size: 1.2rem;
+  font-size: 1rem; /* 核心：缩小字体 */
 }
 
 .auth-switch a {
@@ -221,27 +211,24 @@ input:focus {
   text-decoration: none;
   font-weight: 500;
   margin-left: 6px;
-  font-size: 1.2rem;
+  font-size: 1rem; /* 核心：缩小字体 */
 }
 
-.auth-switch a:hover {
-  text-decoration: underline;
-}
-
+/* 响应式调整 */
 @media (max-width: 768px) {
   .auth-card {
-    padding: 2.5rem 1.5rem;
+    padding: 1.5rem 1rem; /* 进一步缩小移动端内边距 */
     width: 95vw;
   }
 
   h2 {
-    font-size: 2rem;
+    font-size: 1.6rem; /* 缩小移动端标题 */
   }
 
   input, .auth-btn {
-    padding: 1rem;
-    font-size: 1.2rem;
-    height: 55px;
+    padding: 0.7rem; /* 缩小移动端内边距 */
+    font-size: 0.95rem; /* 缩小移动端字体 */
+    height: 40px; /* 降低移动端高度 */
   }
 }
 </style>

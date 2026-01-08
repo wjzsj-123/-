@@ -6,10 +6,14 @@
         <label>题库分类：</label>
         <select v-model="searchParams.category">
           <option value="">全部</option>
-          <option value="Java">Java</option>
-          <option value="Python">Python</option>
-          <option value="前端">前端</option>
-          <option value="数据库">数据库</option>
+          <!-- 动态渲染分类选项 -->
+          <option
+              v-for="category in categories"
+              :key="category"
+              :value="category"
+          >
+            {{ category }}
+          </option>
         </select>
       </div>
       <div class="search-item">
@@ -29,11 +33,11 @@
     <div class="bank-list">
       <div class="bank-card" v-for="bank in bankList" :key="bank.id">
         <div class="bank-header">
-          <h3>{{ bank.name }}</h3>
+          <p><span class="label">分类：</span>{{ bank.category }}</p>
           <span class="publisher">发布者ID：{{ bank.publisherId }}</span>
         </div>
         <div class="bank-body">
-          <p><span class="label">分类：</span>{{ bank.category }}</p>
+          <h3>{{ bank.name }}</h3>
           <p><span class="label">发布时间：</span>{{ formatTime(bank.publishTime) }}</p>
         </div>
         <div class="bank-footer">
@@ -57,6 +61,22 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus' // 如需使用element-ui提示，需先安装：npm i element-plus
+
+const categories = ref([
+  '编程语言',
+  '数据库',
+  '操作系统',
+  '计算机网络',
+  '语文',
+  '数学',
+  '英语',
+  '线性代数',
+  '高等数学',
+  '概率论与数理统计',
+  '数据结构',
+  '算法分析',
+  '软件工程'
+]);
 
 // 搜索参数
 const searchParams = ref({

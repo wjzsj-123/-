@@ -122,4 +122,19 @@ public class QuestionController {
             return Result.error("查询题目失败：" + e.getMessage());
         }
     }
+
+    // 随机获取题目
+    @GetMapping("/random")
+    public Result getRandomQuestions(
+            @RequestParam Long questionSetId,
+            @RequestParam(required = false) Integer limit) {
+        try {
+            List<Question> questions = questionService.getRandomQuestions(questionSetId, limit);
+            return Result.success("随机题目获取成功", questions);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("随机题目获取失败：" + e.getMessage());
+        }
+    }
 }

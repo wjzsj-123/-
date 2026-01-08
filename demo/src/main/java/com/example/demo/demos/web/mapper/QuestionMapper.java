@@ -72,4 +72,12 @@ public interface QuestionMapper {
             @Param("content") String content,
             @Param("type") Integer type,
             @Param("difficulty") Integer difficulty);
+
+    // 随机查询题库下题目ID
+    List<Long> selectRandomQuestionIdsBySetId(
+            @Param("questionSetId") Long questionSetId,
+            @Param("limit") Integer limit);
+
+    // 根据ID列表查询题目（关联选项/填空答案）
+    List<Question> selectQuestionListByIds(@Param("ids") List<Long> ids);
 }
