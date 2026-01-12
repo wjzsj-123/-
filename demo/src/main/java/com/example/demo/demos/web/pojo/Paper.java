@@ -17,7 +17,7 @@ public class Paper {
     private Integer totalQuestions;// 总题数
     private LocalDateTime createTime; // 创建时间
     private Boolean isAnswered; // 核心：是否作答
-    private LocalDateTime lastAnswerTime; // 新增：最后作答时间（可为null）
+    private LocalDateTime lastAnswerTime; // 最后作答时间（可为null）
 
     // 非数据库字段，用于关联查询
     private User user;             // 关联创建者信息
@@ -31,26 +31,11 @@ public class Paper {
     public List<Question> getQuestions() {
         // 避免空指针异常，若 paperQuestions 为 null 则返回空列表
         if (paperQuestions == null) {
-            // Java 8 及以下版本使用 Collections.emptyList()
             return Collections.emptyList();
         }
         // 从中间表对象中提取题目对象
         return paperQuestions.stream()
-                .map(PaperQuestion::getQuestion) // 假设 PaperQuestion 有 getQuestion() 方法
+                .map(PaperQuestion::getQuestion)
                 .collect(Collectors.toList());
-    }
-
-    /*
-     * 更新最后提交时间
-     */
-    public void setSubmitTime(LocalDateTime now) {
-        this.lastAnswerTime = now;
-    }
-
-    /*
-     * 更新是否已经回答
-     */
-    public void setIsAnswer(boolean b) {
-        this.isAnswered = b;
     }
 }

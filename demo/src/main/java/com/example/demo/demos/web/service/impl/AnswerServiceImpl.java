@@ -83,7 +83,7 @@ public class AnswerServiceImpl implements AnswerService {
         }
 
         // 4. 更新试卷状态为“已答题”（isAnswer = true）
-        paper.setIsAnswer(true);
+        paper.setIsAnswered(true);
         paper.setLastAnswerTime(LocalDateTime.now());
         paperMapper.updateById(paper);
 

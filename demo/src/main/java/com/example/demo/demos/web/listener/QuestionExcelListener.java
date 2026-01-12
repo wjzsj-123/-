@@ -21,12 +21,11 @@ import java.util.Map;
 
 @Slf4j
 public class QuestionExcelListener implements ReadListener<QuestionExcelDTO> {
-    // 新增：获取导入成功的数量
     // 计数器：记录成功导入的题目数量
     @Getter
     private int importCount = 0;
 
-    // 在Listener中新增：按批次暂存DTO列表（与questionList一一对应）
+    // 按批次暂存DTO列表
     private List<QuestionExcelDTO> dtoList = new ArrayList<>();
 
     private final QuestionMapper questionMapper;
@@ -84,7 +83,7 @@ public class QuestionExcelListener implements ReadListener<QuestionExcelDTO> {
 
         for (int i = 0; i < questionList.size(); i++) {
             Question question = questionList.get(i);
-            QuestionExcelDTO dto = dtoList.get(i); // 按索引匹配，无需Map
+            QuestionExcelDTO dto = dtoList.get(i); // 按索引匹配
 
             // 处理单选/多选题选项
             if (question.getType() == Question.TYPE_CHOICE || question.getType() == Question.TYPE_MULTIPLE) {
@@ -205,11 +204,9 @@ public class QuestionExcelListener implements ReadListener<QuestionExcelDTO> {
     }
 
     /**
-     * 调整类型转换逻辑，与Question类中的常量严格对应：
      * - 单选题 → TYPE_CHOICE (1)
      * - 多选题 → TYPE_MULTIPLE (3)
      * - 填空题 → TYPE_FILL (2)
-     * 注意：原逻辑中的"判断题"在Question类中未定义，这里暂时映射为多选题（可根据实际需求调整）
      */
     private Integer convertType(String typeStr) {
         if (typeStr.contains("单选")) {

@@ -36,7 +36,7 @@ public class PaperController {
         }
     }
 
-    // 从题库生成试卷（新增接口）
+    // 从题库生成试卷
     @PostMapping("/generate")
     public Result generatePaper(
             @RequestParam Long userId,
@@ -78,7 +78,7 @@ public class PaperController {
         }
     }
 
-    // 提交试卷并判分（新增接口）
+    // 提交试卷并判分
     @PostMapping("/{paperId}/submit")
     public Result submitPaper(
             @PathVariable Long paperId,

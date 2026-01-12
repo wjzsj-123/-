@@ -188,7 +188,7 @@ public class QuestionSetController {
         }
     }
 
-    // 新增接口：根据用户ID和名称模糊查询题目集
+    // 根据用户ID和名称模糊查询题目集
     @GetMapping("/user/{userId}/search")
     public Result searchQuestionSetsByUserIdAndName(
             @PathVariable Long userId,
@@ -203,7 +203,7 @@ public class QuestionSetController {
         }
     }
 
-    // 新增接口：综合查询（用户ID + 分类 + 名称模糊查询）
+    // 综合查询（用户ID + 分类 + 名称模糊查询）
     @GetMapping("/user/{userId}/filter")
     public Result filterQuestionSets(
             @PathVariable Long userId,
@@ -343,7 +343,7 @@ public class QuestionSetController {
     /**
      * 导入公共题库为私有题库
      * @param publicSetId 公共题库ID
-     * @param userId 导入用户ID（实际场景从登录态获取）
+     * @param userId 导入用户ID
      */
     @PostMapping("/public/import/{publicSetId}")
     public Result importPublicQuestionSet(
@@ -361,7 +361,7 @@ public class QuestionSetController {
     }
 
     /**
-     * 更新题库公共状态（含发布人、发布时间）
+     * 更新题库公共状态
      * @param id 题库ID
      * @param isPublic 公共状态（true-公共，false-私有）
      * @param publisherId 发布人ID（公共状态时必填）
