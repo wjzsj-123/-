@@ -1,10 +1,9 @@
-# 完整的 application.yml 配置（复制替换你的原有配置）
 spring:
   # 数据库配置
   datasource:
     url: jdbc:mysql://localhost:3306/lp?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowMultiQueries=true
-    username: root # 替换为你的 MySQL 用户名
-    password: Qq299157 # 替换为你的 MySQL 密码
+    username: root
+    password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
   # JPA 配置（可选，去除无关警告）
   jpa:

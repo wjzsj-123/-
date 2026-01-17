@@ -12,7 +12,7 @@ public class FrontendRouteController {
     // 匹配所有前端路由请求，转发到dist下的index.html（构建产物入口）
     @GetMapping(value = {"/", "/login", "/register", "/home/**"})
     public String forwardToDistIndex() {
-        // 关键修改：指向static/dist/index.html（Spring Boot自动拼接static-locations）
+        // 指向static/dist/index.html（Spring Boot自动拼接static-locations）
         return "forward:/dist/index.html";
     }
 }

@@ -109,9 +109,6 @@ public class QuestionServiceImpl implements QuestionService {
         return count;
     }
 
-
-    // ---------------------- 私有工具方法 ----------------------
-
     /**
      * 校验题目必填参数
      */
