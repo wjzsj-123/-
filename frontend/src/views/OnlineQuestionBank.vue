@@ -25,6 +25,13 @@
             @keyup.enter="getPublicQuestionSets"
         >
       </div>
+      <div class="search-item">
+        <label>排序方式：</label>
+        <select v-model="searchParams.sortBy" @change="onSortChange">
+          <option value="publishTime">按发布时间</option>
+          <option value="hot">按好评度</option>
+        </select>
+      </div>
       <button class="search-btn" @click="getPublicQuestionSets">搜索</button>
       <button class="reset-btn" @click="resetSearch">重置</button>
     </div>
@@ -39,8 +46,38 @@
         <div class="bank-body">
           <h3>{{ bank.name }}</h3>
           <p><span class="label">发布时间：</span>{{ formatTime(bank.publishTime) }}</p>
+          <p><span class="label">点赞：</span>{{ bank.likeCount || 0 }} <span class="label">点踩：</span>{{ bank.dislikeCount || 0 }}</p>
+          <p><span class="label">好评度：</span>{{ bank.favorability || 0 }}</p>
+          <div class="tag-list">
+            <span class="label">题库标签：</span>
+            <template v-if="bank.questionTags && bank.questionTags.length">
+              <span
+                  v-for="tag in bank.questionTags"
+                  :key="`${bank.id}-${tag}`"
+                  class="tag-item"
+              >
+                {{ tag }}
+              </span>
+            </template>
+            <span v-else class="tag-empty">暂无标签</span>
+          </div>
         </div>
         <div class="bank-footer">
+          <button
+              class="vote-btn"
+              :class="{ active: bank.userVote === 1 }"
+              @click="voteBank(bank, 1)"
+          >
+            👍 {{ bank.userVote === 1 ? '已赞' : '点赞' }}
+          </button>
+          <button
+              class="vote-btn dislike"
+              :class="{ active: bank.userVote === -1 }"
+              @click="voteBank(bank, -1)"
+          >
+            👎 {{ bank.userVote === -1 ? '已踩' : '点踩' }}
+          </button>
+          <button class="comment-btn" @click="goDiscussion(bank.id)">查看讨论区</button>
           <button class="import-btn" @click="importBank(bank.id)">导入为我的题库</button>
         </div>
       </div>
@@ -55,12 +92,39 @@
     <div class="loading-tip" v-if="loading">
       加载中...
     </div>
+
+    <div v-if="total > 0" class="pagination">
+      <button :disabled="page <= 1 || loading" @click="changePage(page - 1)">上一页</button>
+      <span>第 {{ page }} / {{ totalPages }} 页（共 {{ total }} 条）</span>
+      <button :disabled="page >= totalPages || loading" @click="changePage(page + 1)">下一页</button>
+      <span>每页</span>
+      <select v-model="size" :disabled="loading" @change="onPageSizeChange">
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+      </select>
+      <span>条</span>
+      <input
+          v-model="jumpPageInput"
+          type="number"
+          min="1"
+          :max="totalPages"
+          class="jump-input"
+          :disabled="loading"
+          @keyup.enter="jumpToPage"
+      />
+      <button :disabled="loading" @click="jumpToPage">跳转</button>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus' // 如需使用element-ui提示，需先安装：npm i element-plus
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const categories = ref([
   '编程语言',
@@ -81,13 +145,20 @@ const categories = ref([
 // 搜索参数
 const searchParams = ref({
   category: '',
-  name: ''
+  name: '',
+  sortBy: 'publishTime'
 })
 
 // 题库列表
 const bankList = ref([])
 // 加载状态
 const loading = ref(false)
+const page = ref(1)
+const size = ref(10)
+const total = ref(0)
+const totalPages = ref(1)
+const jumpPageInput = ref('1')
+const currentUserId = ref('')
 
 // 获取当前登录用户ID（从localStorage中解析）
 const getCurrentUserId = () => {
@@ -109,6 +180,10 @@ const getPublicQuestionSets = async () => {
     const params = new URLSearchParams()
     if (searchParams.value.category) params.append('category', searchParams.value.category)
     if (searchParams.value.name) params.append('name', searchParams.value.name)
+    params.append('sortBy', searchParams.value.sortBy)
+    params.append('page', String(page.value))
+    params.append('size', String(size.value))
+    if (currentUserId.value) params.append('currentUserId', currentUserId.value)
 
     const response = await fetch(`/api/question-set/public?${params.toString()}`, {
       method: 'GET',
@@ -117,9 +192,19 @@ const getPublicQuestionSets = async () => {
     const result = await response.json()
 
     if (result.code === 0) {
-      bankList.value = result.data || []
+      bankList.value = result.data?.list || []
+      total.value = result.data?.total || 0
+      totalPages.value = Math.max(1, Math.ceil(total.value / size.value))
+      if (page.value > totalPages.value) {
+        page.value = totalPages.value
+      }
+      jumpPageInput.value = String(page.value)
     } else {
       ElMessage.error(result.message || '查询失败')
+      bankList.value = []
+      total.value = 0
+      totalPages.value = 1
+      jumpPageInput.value = '1'
     }
   } catch (err) {
     console.error('查询公共题库失败：', err)
@@ -133,6 +218,10 @@ const getPublicQuestionSets = async () => {
 const resetSearch = () => {
   searchParams.value.category = ''
   searchParams.value.name = ''
+  searchParams.value.sortBy = 'publishTime'
+  page.value = 1
+  size.value = 10
+  jumpPageInput.value = '1'
   getPublicQuestionSets()
 }
 
@@ -162,8 +251,70 @@ const importBank = async (publicSetId) => {
   }
 }
 
+const goDiscussion = (setId) => {
+  router.push(`/home/online-bank/${setId}/discussion`)
+}
+
+const voteBank = async (bank, voteType) => {
+  if (!currentUserId.value) {
+    ElMessage.error('请先登录')
+    return
+  }
+  try {
+    const response = await fetch(`/api/question-set/public/${bank.id}/vote?userId=${currentUserId.value}&voteType=${voteType}`, {
+      method: 'POST'
+    })
+    const result = await response.json()
+    if (result.code === 0) {
+      await getPublicQuestionSets()
+    } else {
+      ElMessage.error(result.message || '投票失败')
+    }
+  } catch (err) {
+    ElMessage.error('网络错误，投票失败')
+  }
+}
+
+const changePage = async (targetPage) => {
+  if (targetPage < 1 || targetPage > totalPages.value) return
+  page.value = targetPage
+  await getPublicQuestionSets()
+}
+
+const onPageSizeChange = async () => {
+  const parsed = Number(size.value)
+  if (![5, 10, 20, 50].includes(parsed)) {
+    size.value = 10
+  } else {
+    size.value = parsed
+  }
+  page.value = 1
+  await getPublicQuestionSets()
+}
+
+const jumpToPage = async () => {
+  const target = Number(jumpPageInput.value)
+  if (!Number.isFinite(target)) {
+    ElMessage.warning('请输入有效页码')
+    jumpPageInput.value = String(page.value)
+    return
+  }
+  const normalized = Math.min(Math.max(Math.floor(target), 1), totalPages.value)
+  if (normalized === page.value) {
+    jumpPageInput.value = String(page.value)
+    return
+  }
+  await changePage(normalized)
+}
+
+const onSortChange = async () => {
+  page.value = 1
+  await getPublicQuestionSets()
+}
+
 // 页面挂载时初始化查询
 onMounted(() => {
+  currentUserId.value = getCurrentUserId()
   getPublicQuestionSets()
 })
 </script>
@@ -270,8 +421,67 @@ onMounted(() => {
   font-weight: 500;
 }
 
+.tag-list {
+  margin-top: 8px;
+  line-height: 1.8;
+}
+
+.tag-item {
+  display: inline-block;
+  margin-right: 6px;
+  margin-bottom: 6px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #eef6ff;
+  color: #409eff;
+  font-size: 12px;
+}
+
+.tag-empty {
+  color: #999;
+  font-size: 12px;
+}
+
 .bank-footer {
   text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.vote-btn {
+  padding: 6px 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.vote-btn.active {
+  border-color: #67c23a;
+  color: #67c23a;
+}
+
+.vote-btn.dislike.active {
+  border-color: #f56c6c;
+  color: #f56c6c;
+}
+
+.comment-btn {
+  padding: 6px 15px;
+  background: #67c23a;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.comment-btn:hover {
+  background: #85ce61;
 }
 
 .import-btn {
@@ -298,6 +508,36 @@ onMounted(() => {
 
 .loading-tip {
   color: #666;
+}
+
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.pagination button {
+  padding: 4px 10px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.pagination select {
+  padding: 4px 8px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  background: #fff;
+}
+
+.jump-input {
+  width: 70px;
+  padding: 4px 8px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
 }
 
 /* 响应式适配 */

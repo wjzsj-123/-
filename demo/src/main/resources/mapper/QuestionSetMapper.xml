@@ -114,16 +114,66 @@
 
     <!-- 查询公共题库列表 -->
     <select id="selectPublicQuestionSets" resultType="com.example.demo.demos.web.pojo.QuestionSet">
-        SELECT id, user_id, name, category, create_time, update_time, is_public, publisher_id, publish_time
-        FROM question_set
-        WHERE is_public = 1
+        SELECT
+            qs.id, qs.user_id, qs.name, qs.category, qs.create_time, qs.update_time, qs.is_public, qs.publisher_id, qs.publish_time,
+            COALESCE(v.like_count, 0) AS like_count,
+            COALESCE(v.dislike_count, 0) AS dislike_count,
+            (COALESCE(v.like_count, 0) * 2 - COALESCE(v.dislike_count, 0)) AS favorability,
+            <choose>
+                <when test="currentUserId != null">
+                    COALESCE((
+                        SELECT qsv.vote_type
+                        FROM question_set_vote qsv
+                        WHERE qsv.question_set_id = qs.id
+                          AND qsv.user_id = #{currentUserId}
+                        LIMIT 1
+                    ), 0) AS user_vote
+                </when>
+                <otherwise>
+                    0 AS user_vote
+                </otherwise>
+            </choose>
+        FROM question_set qs
+        LEFT JOIN (
+            SELECT
+                question_set_id,
+                SUM(CASE WHEN vote_type = 1 THEN 1 ELSE 0 END) AS like_count,
+                SUM(CASE WHEN vote_type = -1 THEN 1 ELSE 0 END) AS dislike_count
+            FROM question_set_vote
+            GROUP BY question_set_id
+        ) v ON v.question_set_id = qs.id
+        <trim prefix="WHERE" prefixOverrides="AND">
+            qs.is_public = 1
         <if test="category != null and category != ''">
-            AND category = #{category}
+            AND qs.category = #{category}
         </if>
         <if test="name != null and name != ''">
-            AND name LIKE CONCAT('%', #{name}, '%')
+            AND qs.name LIKE CONCAT('%', #{name}, '%')
         </if>
-        ORDER BY publish_time DESC
+        </trim>
+        <choose>
+            <when test="sortBy == 'hot'">
+                ORDER BY favorability DESC, COALESCE(v.like_count, 0) DESC, qs.publish_time DESC
+            </when>
+            <otherwise>
+                ORDER BY qs.publish_time DESC
+            </otherwise>
+        </choose>
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countPublicQuestionSets" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM question_set qs
+        <trim prefix="WHERE" prefixOverrides="AND">
+            qs.is_public = 1
+            <if test="category != null and category != ''">
+                AND qs.category = #{category}
+            </if>
+            <if test="name != null and name != ''">
+                AND qs.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+        </trim>
     </select>
 
     <!-- 导入公共题库（插入新私有题库） -->

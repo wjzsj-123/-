@@ -5,6 +5,7 @@ import com.example.demo.demos.web.pojo.QuestionSet;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 
 public interface QuestionSetService {
     // 创建题目集
@@ -66,7 +67,16 @@ public interface QuestionSetService {
      * @param name 名称模糊查询（可选）
      * @return 公共题库列表
      */
-    List<QuestionSet> getPublicQuestionSets(String category, String name);
+    Map<String, Object> getPublicQuestionSets(String category, String name, String sortBy, Long currentUserId, Integer page, Integer size);
+
+    /**
+     * 公共题库点赞/点踩切换
+     * @param setId 题库ID
+     * @param userId 用户ID
+     * @param voteType 1点赞，-1点踩
+     * @return 当前投票状态：1点赞，-1点踩，0取消
+     */
+    int votePublicQuestionSet(Long setId, Long userId, Integer voteType);
 
     /**
      * 导入公共题库为私有题库

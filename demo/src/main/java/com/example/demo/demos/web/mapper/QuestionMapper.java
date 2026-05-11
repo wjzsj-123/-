@@ -36,6 +36,9 @@ public interface QuestionMapper {
     // 根据题库ID查询题目
     List<Question> selectByQuestionSetId(Long questionSetId);
 
+    // 根据题库ID查询题目的标签列表
+    List<String> selectTagsByQuestionSetId(Long questionSetId);
+
     // 查询所有题目
     List<Question> selectAll();
 

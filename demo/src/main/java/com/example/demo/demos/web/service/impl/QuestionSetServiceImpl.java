@@ -14,8 +14,13 @@ import javax.annotation.Resource;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class QuestionSetServiceImpl implements QuestionSetService {
@@ -37,6 +42,15 @@ public class QuestionSetServiceImpl implements QuestionSetService {
 
     @Resource
     private PaperMapper paperMapper;
+
+    @Resource
+    private QuestionSetCommentMapper questionSetCommentMapper;
+
+    @Resource
+    private QuestionSetCommentLikeMapper questionSetCommentLikeMapper;
+
+    @Resource
+    private QuestionSetVoteMapper questionSetVoteMapper;
 
     @Override
     public int createQuestionSet(QuestionSet questionSet) {
@@ -90,6 +104,10 @@ public class QuestionSetServiceImpl implements QuestionSetService {
         questionMapper.deleteByQuestionSetId(id);
 
         // 步骤4：删除题库本身
+        // 题库讨论数据级联删除
+        questionSetCommentLikeMapper.deleteByQuestionSetId(id);
+        questionSetCommentMapper.deleteByQuestionSetId(id);
+        questionSetVoteMapper.deleteByQuestionSetId(id);
         return questionSetMapper.deleteById(id);
     }
 
@@ -357,12 +375,64 @@ public class QuestionSetServiceImpl implements QuestionSetService {
     }
 
     @Override
-    public List<QuestionSet> getPublicQuestionSets(String category, String name) {
+    public Map<String, Object> getPublicQuestionSets(String category, String name, String sortBy, Long currentUserId, Integer page, Integer size) {
         // 名称模糊查询处理（前端传关键词，后端拼接%）
         if (name != null && !name.isEmpty()) {
             name = "%" + name + "%";
         }
-        return questionSetMapper.selectPublicQuestionSets(category, name);
+        if (!"hot".equals(sortBy)) {
+            sortBy = "publishTime";
+        }
+        if (page == null || page < 1) {
+            page = 1;
+        }
+        if (size == null || size < 1 || size > 50) {
+            size = 10;
+        }
+        int offset = (page - 1) * size;
+        List<QuestionSet> publicSets = questionSetMapper.selectPublicQuestionSets(category, name, sortBy, currentUserId, offset, size);
+        for (QuestionSet set : publicSets) {
+            List<String> questionTags = questionMapper.selectTagsByQuestionSetId(set.getId());
+            set.setQuestionTags(mergeQuestionTags(questionTags));
+        }
+        int total = questionSetMapper.countPublicQuestionSets(category, name);
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", publicSets);
+        result.put("total", total);
+        result.put("page", page);
+        result.put("size", size);
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int votePublicQuestionSet(Long setId, Long userId, Integer voteType) {
+        if (setId == null || userId == null) {
+            throw new IllegalArgumentException("题库ID和用户ID不能为空");
+        }
+        if (voteType == null || (voteType != 1 && voteType != -1)) {
+            throw new IllegalArgumentException("投票类型无效");
+        }
+        QuestionSet set = questionSetMapper.selectById(setId);
+        if (set == null || set.getIsPublic() == null || set.getIsPublic() != 1) {
+            throw new IllegalArgumentException("该题库当前非公开状态，无法投票");
+        }
+
+        QuestionSetVote existing = questionSetVoteMapper.selectBySetIdAndUserId(setId, userId);
+        if (existing == null) {
+            QuestionSetVote vote = new QuestionSetVote();
+            vote.setQuestionSetId(setId);
+            vote.setUserId(userId);
+            vote.setVoteType(voteType);
+            questionSetVoteMapper.insert(vote);
+            return voteType;
+        }
+        if (existing.getVoteType().equals(voteType)) {
+            questionSetVoteMapper.deleteById(existing.getId());
+            return 0;
+        }
+        questionSetVoteMapper.updateVoteType(existing.getId(), voteType);
+        return voteType;
     }
 
     @Override
@@ -397,6 +467,7 @@ public class QuestionSetServiceImpl implements QuestionSetService {
             Question newQ = new Question();
             newQ.setQuestionSetId(newSetId);
             newQ.setContent(publicQ.getContent());
+            newQ.setTag(publicQ.getTag());
             newQ.setType(publicQ.getType());
             newQ.setDifficulty(publicQ.getDifficulty());
             newQ.setCreateTime(LocalDateTime.now());
@@ -453,5 +524,22 @@ public class QuestionSetServiceImpl implements QuestionSetService {
         publisherId = isPublic ? publisherId : null;
 
         return questionSetMapper.updatePublicStatus(id, publicStatus, publisherId, publishTime);
+    }
+
+    private List<String> mergeQuestionTags(List<String> rawTags) {
+        if (CollectionUtils.isEmpty(rawTags)) {
+            return new ArrayList<>();
+        }
+        Set<String> uniqueTags = new LinkedHashSet<>();
+        for (String rawTag : rawTags) {
+            if (rawTag == null || rawTag.trim().isEmpty()) {
+                continue;
+            }
+            Arrays.stream(rawTag.split("[,，]"))
+                    .map(String::trim)
+                    .filter(tag -> !tag.isEmpty())
+                    .forEach(uniqueTags::add);
+        }
+        return new ArrayList<>(uniqueTags);
     }
 }

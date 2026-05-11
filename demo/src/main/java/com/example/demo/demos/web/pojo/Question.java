@@ -18,6 +18,7 @@ public class Question {
     private Long id;
     private Long questionSetId;
     private String content;
+    private String tag;
     private Integer type;
     private Integer difficulty;
     private LocalDateTime createTime;

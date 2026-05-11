@@ -15,6 +15,16 @@
         ></textarea>
       </div>
 
+      <div class="form-group">
+        <label for="tag">题目标签</label>
+        <input
+            id="tag"
+            v-model="form.tag"
+            type="text"
+            placeholder="例如：二叉树，动态规划（可用逗号分隔）"
+        >
+      </div>
+
       <!-- 题目类型 -->
       <div class="form-group">
         <label for="type">题目类型 <span class="required">*</span></label>
@@ -149,6 +159,7 @@ const form = ref({
   id: props.editData ? props.editData.id : null,
   questionSetId: props.questionSetId,
   content: props.editData ? props.editData.content : '',
+  tag: props.editData ? (props.editData.tag || '') : '',
   // 类型转换：后端1→单选题(option)，2→填空题(fill)，3→多选题(multiple)
   type: props.editData
       ? (props.editData.type === 1 ? 'option'
@@ -358,6 +369,7 @@ const handleSubmit = () => {
     id: form.value.id,
     questionSetId: form.value.questionSetId,
     content: form.value.content,
+    tag: form.value.tag ? form.value.tag.trim() : '',
     type: typeInt,
     difficulty: difficultyInt,
     options: form.value.options,

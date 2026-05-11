@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.demos.web.mapper.QuestionSetCommentMapper">
+    <sql id="BaseColumnList">
+        id, question_set_id, user_id, content, sentiment, like_count, create_time, update_time
+    </sql>
+
+    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.QuestionSetComment"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO question_set_comment (
+            question_set_id, user_id, content, sentiment, like_count, create_time, update_time
+        ) VALUES (
+            #{questionSetId}, #{userId}, #{content}, #{sentiment}, 0, NOW(), NOW()
+        )
+    </insert>
+
+    <delete id="deleteById">
+        DELETE FROM question_set_comment WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteByQuestionSetId">
+        DELETE FROM question_set_comment WHERE question_set_id = #{questionSetId}
+    </delete>
+
+    <select id="selectById" resultType="com.example.demo.demos.web.pojo.QuestionSetComment">
+        SELECT <include refid="BaseColumnList"/>
+        FROM question_set_comment
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectPublicComments" resultType="com.example.demo.demos.web.pojo.QuestionSetComment">
+        SELECT
+            c.id,
+            c.question_set_id,
+            c.user_id,
+            c.content,
+            c.sentiment,
+            c.like_count,
+            c.create_time,
+            c.update_time,
+            u.username,
+            u.nickname,
+            <choose>
+                <when test="currentUserId != null">
+                    EXISTS(
+                        SELECT 1
+                        FROM question_set_comment_like l
+                        WHERE l.comment_id = c.id
+                          AND l.user_id = #{currentUserId}
+                    ) AS liked_by_current_user
+                </when>
+                <otherwise>
+                    FALSE AS liked_by_current_user
+                </otherwise>
+            </choose>
+        FROM question_set_comment c
+        INNER JOIN question_set qs ON qs.id = c.question_set_id
+        LEFT JOIN user u ON u.id = c.user_id
+        WHERE c.question_set_id = #{questionSetId}
+          AND qs.is_public = 1
+        <choose>
+            <when test="sortBy == 'hot'">
+                ORDER BY c.like_count DESC, c.create_time DESC
+            </when>
+            <otherwise>
+                ORDER BY c.create_time DESC
+            </otherwise>
+        </choose>
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countPublicComments" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM question_set_comment c
+        INNER JOIN question_set qs ON qs.id = c.question_set_id
+        WHERE c.question_set_id = #{questionSetId}
+          AND qs.is_public = 1
+    </select>
+
+    <update id="incrementLikeCount">
+        UPDATE question_set_comment
+        SET like_count = like_count + 1,
+            update_time = NOW()
+        WHERE id = #{commentId}
+    </update>
+
+    <update id="decrementLikeCount">
+        UPDATE question_set_comment
+        SET like_count = CASE WHEN like_count &gt; 0 THEN like_count - 1 ELSE 0 END,
+            update_time = NOW()
+        WHERE id = #{commentId}
+    </update>
+</mapper>

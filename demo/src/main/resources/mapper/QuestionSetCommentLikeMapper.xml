@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.demos.web.mapper.QuestionSetCommentLikeMapper">
+    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.QuestionSetCommentLike"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO question_set_comment_like (
+            comment_id, question_set_id, user_id, create_time
+        ) VALUES (
+            #{commentId}, #{questionSetId}, #{userId}, NOW()
+        )
+    </insert>
+
+    <delete id="deleteByCommentIdAndUserId">
+        DELETE FROM question_set_comment_like
+        WHERE comment_id = #{commentId}
+          AND user_id = #{userId}
+    </delete>
+
+    <delete id="deleteByCommentId">
+        DELETE FROM question_set_comment_like
+        WHERE comment_id = #{commentId}
+    </delete>
+
+    <delete id="deleteByQuestionSetId">
+        DELETE FROM question_set_comment_like
+        WHERE question_set_id = #{questionSetId}
+    </delete>
+
+    <select id="selectByCommentIdAndUserId" resultType="com.example.demo.demos.web.pojo.QuestionSetCommentLike">
+        SELECT id, comment_id, question_set_id, user_id, create_time
+        FROM question_set_comment_like
+        WHERE comment_id = #{commentId}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+</mapper>

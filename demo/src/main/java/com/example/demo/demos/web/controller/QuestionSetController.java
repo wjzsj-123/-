@@ -330,13 +330,33 @@ public class QuestionSetController {
     @GetMapping("/public")
     public Result getPublicQuestionSets(
             @RequestParam(required = false) String category,
-            @RequestParam(required = false) String name
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false, defaultValue = "publishTime") String sortBy,
+            @RequestParam(required = false) Long currentUserId,
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer size
     ) {
         try {
-            List<QuestionSet> publicSets = questionSetService.getPublicQuestionSets(category, name);
+            Map<String, Object> publicSets = questionSetService.getPublicQuestionSets(category, name, sortBy, currentUserId, page, size);
             return Result.success("查询公共题库成功", publicSets);
         } catch (Exception e) {
             return Result.error("查询失败：" + e.getMessage());
+        }
+    }
+
+    @PostMapping("/public/{setId}/vote")
+    public Result votePublicQuestionSet(
+            @PathVariable Long setId,
+            @RequestParam Long userId,
+            @RequestParam Integer voteType
+    ) {
+        try {
+            int currentVote = questionSetService.votePublicQuestionSet(setId, userId, voteType);
+            return Result.success("操作成功", currentVote);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("投票失败：" + e.getMessage());
         }
     }
 

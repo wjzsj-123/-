@@ -111,6 +111,9 @@
         <!-- 完整模式显示内容 -->
         <div v-if="displayMode === 'full'">
           <div class="question-content">{{ q.content }}</div>
+          <div v-if="q.tag" class="question-tag-line">
+            <span class="tag-label">标签：</span>{{ q.tag }}
+          </div>
 
           <!-- 选择题选项展示 -->
           <div v-if="q.type === 1 || q.type === 3" class="question-options">
@@ -134,6 +137,9 @@
         <!-- 简化模式显示内容（只显示题目内容和操作按钮） -->
         <div v-if="displayMode === 'simple'" class="simple-content">
           <div class="question-content">{{ q.content }}</div>
+          <div v-if="q.tag" class="question-tag-line">
+            <span class="tag-label">标签：</span>{{ q.tag }}
+          </div>
         </div>
 
         <!-- 操作按钮（两种模式都显示） -->
@@ -589,6 +595,17 @@ onMounted(() => {
 .question-content {
   margin-bottom: 1rem;
   font-size: 1.05rem;
+}
+
+.question-tag-line {
+  margin-bottom: 0.8rem;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.tag-label {
+  color: #333;
+  font-weight: 500;
 }
 
 .question-options {

@@ -4,7 +4,7 @@
 
 <mapper namespace="com.example.demo.demos.web.mapper.QuestionMapper">
     <sql id="BaseColumnList">
-        id, question_set_id, content, type, difficulty, create_time, update_time
+        id, question_set_id, content, tag, type, difficulty, create_time, update_time
     </sql>
 
     <!-- 新增 -->
@@ -15,6 +15,7 @@
         INSERT INTO question (
             question_set_id,
             content,
+            tag,
             type,
             difficulty,
             create_time,
@@ -22,6 +23,7 @@
         ) VALUES (
         #{questionSetId},
         #{content},
+        #{tag},
         #{type},
         #{difficulty},
         NOW(),
@@ -45,6 +47,7 @@
         <set>
             <if test="questionSetId != null">question_set_id = #{questionSetId},</if>
             <if test="content != null">content = #{content},</if>
+            <if test="tag != null">tag = #{tag},</if>
             <if test="type != null">type = #{type},</if>
             <if test="difficulty != null">difficulty = #{difficulty},</if>
             update_time = NOW()
@@ -60,6 +63,14 @@
     <!-- 根据题库ID查询 -->
     <select id="selectByQuestionSetId" resultType="com.example.demo.demos.web.pojo.Question">
         SELECT <include refid="BaseColumnList"/> FROM question WHERE question_set_id = #{questionSetId}
+    </select>
+
+    <select id="selectTagsByQuestionSetId" resultType="java.lang.String">
+        SELECT tag
+        FROM question
+        WHERE question_set_id = #{questionSetId}
+          AND tag IS NOT NULL
+          AND tag != ''
     </select>
 
     <!-- 查询所有 -->
@@ -87,6 +98,7 @@
         <id column="id" property="id"/>
         <result column="question_set_id" property="questionSetId"/>
         <result column="content" property="content"/>
+        <result column="tag" property="tag"/>
         <result column="type" property="type"/>
         <result column="difficulty" property="difficulty"/>
         <result column="create_time" property="createTime"/>
@@ -159,17 +171,17 @@
 
     <!-- 批量插入题目 -->
     <insert id="batchInsert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO question (question_set_id, content, type, difficulty, create_time, update_time)
+        INSERT INTO question (question_set_id, content, tag, type, difficulty, create_time, update_time)
         VALUES
         <foreach collection="list" item="item" separator=",">
-            (#{item.questionSetId}, #{item.content}, #{item.type}, #{item.difficulty}, #{item.createTime}, #{item.updateTime})
+            (#{item.questionSetId}, #{item.content}, #{item.tag}, #{item.type}, #{item.difficulty}, #{item.createTime}, #{item.updateTime})
         </foreach>
     </insert>
 
     <!-- 按条件查询题库中的题目 -->
     <select id="selectByFilter" resultType="com.example.demo.demos.web.pojo.Question">
         SELECT
-        id, question_set_id, content, type, difficulty,
+        id, question_set_id, content, tag, type, difficulty,
         create_time, update_time, sort_order
         FROM question
         WHERE question_set_id = #{questionSetId}

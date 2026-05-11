@@ -68,6 +68,15 @@ public interface QuestionSetMapper {
     // 查询公共题库列表（支持分类/名称模糊查询）
     List<QuestionSet> selectPublicQuestionSets(
             @Param("category") String category,
+            @Param("name") String name,
+            @Param("sortBy") String sortBy,
+            @Param("currentUserId") Long currentUserId,
+            @Param("offset") Integer offset,
+            @Param("size") Integer size
+    );
+
+    int countPublicQuestionSets(
+            @Param("category") String category,
             @Param("name") String name
     );
 

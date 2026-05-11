@@ -65,6 +65,12 @@ const routes = [
                 name: 'OnlineQuestionBank',
                 meta: { requiresAuth: true }
             },
+            {
+                path: 'online-bank/:id/discussion',
+                component: () => import('@/views/OnlineBankDiscussion.vue'),
+                name: 'OnlineBankDiscussion',
+                meta: { requiresAuth: true }
+            },
             { path: 'user/profile', component: UserProfile }
         ]
     }
