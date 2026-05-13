@@ -2,7 +2,10 @@
   <div class="paper-container">
     <div class="paper-header">
       <h3>我的试卷</h3>
-      <button class="generate-btn" @click="goToGeneratePaper">生成试卷</button>
+      <div class="header-actions">
+        <button class="generate-btn" @click="goToGeneratePaper('random')">生成随机试卷</button>
+        <button class="generate-btn custom-btn" @click="goToGeneratePaper('custom')">生成定制试卷</button>
+      </div>
     </div>
     <div class="paper-content">
       <!-- 试卷列表区域 -->
@@ -38,12 +41,25 @@
             >
               查看答案
             </button>
+            <button
+                class="action-btn start-btn"
+                @click="handleRetry(paper.id)"
+                v-if="paper.isAnswered"
+            >
+              重新作答
+            </button>
             <!-- 删除按钮 -->
             <button
                 class="action-btn delete-btn"
                 @click="handleDelete(paper.id)"
             >
               删除
+            </button>
+            <button
+                class="action-btn share-btn"
+                @click="togglePublicStatus(paper)"
+            >
+              {{ paper.isShared ? '设为私有' : '设为公有' }}
             </button>
           </div>
         </div>
@@ -106,8 +122,8 @@ const fetchUserPapers = async () => {
 };
 
 // 跳转到生成试卷页面
-const goToGeneratePaper = () => {
-  router.push('/home/paper/generate'); // 保持原路由跳转逻辑
+const goToGeneratePaper = (mode) => {
+  router.push(`/home/paper/generate?mode=${mode}`);
 };
 
 // 开始答题（修改为扁平路由路径）
@@ -145,6 +161,48 @@ const handleDelete = async (paperId) => {
   }
 };
 
+const togglePublicStatus = async (paper) => {
+  const user = getUserInfo();
+  if (!user || !user.id) return;
+  try {
+    const nextStatus = !paper.isShared;
+    const response = await fetch(`/api/paper/${paper.id}/public-status?userId=${user.id}&isPublic=${nextStatus}`, {
+      method: 'PUT'
+    });
+    const result = await response.json();
+    if (result.code === 0) {
+      alert(nextStatus ? '已设为公有' : '已设为私有');
+      fetchUserPapers();
+    } else {
+      alert(`更新失败：${result.message}`);
+    }
+  } catch (err) {
+    console.error('更新公开状态失败：', err);
+    alert('网络错误，更新失败');
+  }
+};
+
+const handleRetry = async (paperId) => {
+  const user = getUserInfo();
+  if (!user || !user.id) return;
+  try {
+    const response = await fetch(`/api/paper/${paperId}/retry?userId=${user.id}`, {
+      method: 'POST'
+    });
+    const result = await response.json();
+    if (result.code === 0) {
+      alert('已重置，可重新作答');
+      fetchUserPapers();
+      router.push(`/home/paper/answer/${paperId}`);
+    } else {
+      alert(`重置失败：${result.message}`);
+    }
+  } catch (err) {
+    console.error('重置失败：', err);
+    alert('网络错误，重置失败');
+  }
+};
+
 // 页面加载时获取试卷列表
 onMounted(() => {
   fetchUserPapers();
@@ -156,9 +214,9 @@ console.log('试卷管理组件已加载');
 <style scoped>
 .paper-container {
   width: 100%;
-  min-height: 100vh; /* 确保占满视口高度 */
-  padding: 2rem;
-  background-color: #f8f9fa;
+  min-height: 0;
+  padding: 0;
+  background-color: transparent;
 }
 
 .paper-header {
@@ -166,6 +224,11 @@ console.log('试卷管理组件已加载');
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .generate-btn {
@@ -181,6 +244,14 @@ console.log('试卷管理组件已加载');
 
 .generate-btn:hover {
   background-color: #359e69;
+}
+
+.custom-btn {
+  background-color: #409eff;
+}
+
+.custom-btn:hover {
+  background-color: #327ed1;
 }
 
 .paper-content {
@@ -277,6 +348,11 @@ h3 {
   color: white;
 }
 
+.share-btn {
+  background-color: #9b59b6;
+  color: white;
+}
+
 /* 空状态样式 */
 .empty-state {
   grid-column: 1 / -1;
@@ -290,7 +366,7 @@ h3 {
 /* 响应式调整 */
 @media (max-width: 768px) {
   .paper-container {
-    padding: 1rem;
+    padding: 0;
   }
 
   .paper-list {

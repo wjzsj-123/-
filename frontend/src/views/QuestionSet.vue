@@ -440,6 +440,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.question-set-detail {
+  width: 100%;
+}
+
 .set-meta .public-status {
   margin-left: 15px;
   color: #42b983;

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.demos.web.mapper.StudyPlanRecordMapper">
+    <select id="selectByPlanIdAndQuestionId" resultType="com.example.demo.demos.web.pojo.StudyPlanRecord">
+        SELECT id, plan_id, question_id, status, learned_time, create_time, update_time
+        FROM study_plan_record
+        WHERE plan_id = #{planId}
+          AND question_id = #{questionId}
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.StudyPlanRecord"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO study_plan_record (
+            plan_id, question_id, status, learned_time, create_time, update_time
+        ) VALUES (
+            #{planId}, #{questionId}, #{status}, #{learnedTime}, NOW(), NOW()
+        )
+    </insert>
+
+    <update id="markLearned">
+        UPDATE study_plan_record
+        SET status = 1,
+            learned_time = NOW(),
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="markWrong">
+        UPDATE study_plan_record
+        SET status = 2,
+            learned_time = NULL,
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+</mapper>

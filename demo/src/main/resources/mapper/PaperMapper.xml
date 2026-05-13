@@ -4,7 +4,7 @@
 
 <mapper namespace="com.example.demo.demos.web.mapper.PaperMapper">
     <sql id="BaseColumnList">
-        id, title, description, user_id, category, total_questions, create_time, last_answer_time, is_answered
+        id, title, description, user_id, category, total_questions, create_time, last_answer_time, is_answered, is_shared, share_code, source_paper_id
     </sql>
 
     <!-- 新增试卷 -->
@@ -12,8 +12,8 @@
             useGeneratedKeys="true"
             keyProperty="id"
     keyColumn="id">
-    INSERT INTO paper (title, description, user_id, category, total_questions, create_time)
-    VALUES (#{title}, #{description}, #{userId}, #{category}, #{totalQuestions}, #{createTime})
+    INSERT INTO paper (title, description, user_id, category, total_questions, create_time, is_shared, share_code, source_paper_id)
+    VALUES (#{title}, #{description}, #{userId}, #{category}, #{totalQuestions}, #{createTime}, #{isShared}, #{shareCode}, #{sourcePaperId})
 </insert>
 
     <!-- 根据ID删除 -->
@@ -40,6 +40,9 @@
             <if test="totalQuestions != null">total_questions = #{totalQuestions},</if>
             <if test="isAnswered != null">is_answered = #{isAnswered},</if>
             <if test="lastAnswerTime != null">last_answer_time = #{lastAnswerTime},</if>
+            <if test="isShared != null">is_shared = #{isShared},</if>
+            <if test="shareCode != null">share_code = #{shareCode},</if>
+            <if test="sourcePaperId != null">source_paper_id = #{sourcePaperId},</if>
         </set>
         WHERE id = #{id}
     </update>
@@ -54,6 +57,7 @@
         <id column="q_id" property="id"/>
         <result column="q_question_set_id" property="questionSetId"/>
         <result column="q_content" property="content"/>
+        <result column="q_tag" property="tag"/>
         <result column="q_type" property="type"/>
         <result column="q_difficulty" property="difficulty"/>
         <result column="q_create_time" property="createTime"/>
@@ -101,6 +105,9 @@
         <result column="create_time" property="createTime"/>
         <result column="last_answer_time" property="lastAnswerTime"/>
         <result column="is_answered" property="isAnswered"/>
+        <result column="is_shared" property="isShared"/>
+        <result column="share_code" property="shareCode"/>
+        <result column="source_paper_id" property="sourcePaperId"/>
 
         <!-- 关联映射paperQuestions列表 -->
         <collection property="paperQuestions" ofType="com.example.demo.demos.web.pojo.PaperQuestion"
@@ -128,6 +135,7 @@
             q.id AS q_id,
             q.question_set_id AS q_question_set_id,
             q.content AS q_content,
+            q.tag AS q_tag,
             q.type AS q_type,
             q.difficulty AS q_difficulty,
             q.create_time AS q_create_time,
@@ -171,5 +179,80 @@
     <select id="countByUserId" resultType="java.lang.Integer">
         SELECT COUNT(*) FROM paper
         WHERE user_id = #{userId}
+    </select>
+
+    <select id="selectShared" resultType="com.example.demo.demos.web.pojo.Paper">
+        SELECT <include refid="BaseColumnList"/> FROM paper
+        WHERE is_shared = 1
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectPublicPapers" resultType="com.example.demo.demos.web.pojo.Paper">
+        SELECT
+            p.id, p.title, p.description, p.user_id, p.category, p.total_questions, p.create_time,
+            p.last_answer_time, p.is_answered, p.is_shared, p.share_code, p.source_paper_id,
+            IFNULL(stats.answer_count, 0) AS answer_count,
+            IFNULL(stats.copy_count, 0) AS copy_count,
+            (IFNULL(stats.answer_count, 0) * 2 + IFNULL(stats.copy_count, 0) * 3) AS hot_score,
+            pu.nickname AS publisher_nickname,
+            pu.username AS publisher_username,
+            <choose>
+                <when test="currentUserId != null">
+                    EXISTS (
+                        SELECT 1 FROM user_follow uf
+                        WHERE uf.follower_id = #{currentUserId} AND uf.followee_id = p.user_id
+                    ) AS viewer_follows_publisher
+                </when>
+                <otherwise>
+                    0 AS viewer_follows_publisher
+                </otherwise>
+            </choose>
+        FROM paper p
+        LEFT JOIN user pu ON pu.id = p.user_id
+        LEFT JOIN (
+            SELECT
+                p0.id AS paper_id,
+                COUNT(DISTINCT ua.user_id) AS answer_count,
+                (SELECT COUNT(1) FROM paper cp WHERE cp.source_paper_id = p0.id) AS copy_count
+            FROM paper p0
+            LEFT JOIN user_answer ua ON ua.paper_id = p0.id
+            GROUP BY p0.id
+        ) stats ON stats.paper_id = p.id
+        WHERE p.is_shared = 1
+          <if test="name != null and name != ''">
+              AND p.title LIKE #{name}
+          </if>
+        <choose>
+            <when test="sortBy == 'hot'">
+                ORDER BY hot_score DESC, p.create_time DESC
+            </when>
+            <otherwise>
+                ORDER BY p.create_time DESC
+            </otherwise>
+        </choose>
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countPublicPapers" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM paper p
+        WHERE p.is_shared = 1
+          <if test="name != null and name != ''">
+              AND p.title LIKE #{name}
+          </if>
+    </select>
+
+    <select id="selectByShareCode" resultType="com.example.demo.demos.web.pojo.Paper">
+        SELECT <include refid="BaseColumnList"/> FROM paper
+        WHERE share_code = #{shareCode}
+        LIMIT 1
+    </select>
+
+    <select id="selectSharedByUserId" resultType="com.example.demo.demos.web.pojo.Paper">
+        SELECT id, title, description, user_id, category, total_questions, create_time, is_shared, share_code
+        FROM paper
+        WHERE is_shared = 1 AND user_id = #{userId}
+        ORDER BY create_time DESC
+        LIMIT 200
     </select>
 </mapper>

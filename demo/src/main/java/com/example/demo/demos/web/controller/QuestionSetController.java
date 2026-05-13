@@ -211,6 +211,12 @@ public class QuestionSetController {
             @RequestParam(required = false) String name) {
         try {
             List<QuestionSet> questionSets = questionSetService.filterQuestionSets(userId, category, name);
+            for (QuestionSet set : questionSets) {
+                QuestionCountDTO countDTO = questionMapper.countByQuestionSetIdAndType(set.getId());
+                set.setChoiceCount(countDTO.getChoiceCount());
+                set.setMultiCount(countDTO.getMultiCount());
+                set.setFillCount(countDTO.getFillCount());
+            }
             return Result.success("查询成功", questionSets);
         } catch (IllegalArgumentException e) {
             return Result.error(e.getMessage());

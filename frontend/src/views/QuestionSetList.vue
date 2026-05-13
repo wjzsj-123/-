@@ -31,6 +31,8 @@
         <th>ID</th>
         <th>题库名称</th>
         <th>分类</th>
+        <th>状态</th>
+        <th>公开数据</th>
         <th>创建时间</th>
         <th>操作</th>
       </tr>
@@ -40,6 +42,15 @@
         <td>{{ set.id }}</td>
         <td>{{ set.name }}</td>
         <td>{{ set.category }}</td>
+        <td>{{ set.isPublic === 1 ? '公开' : '私有' }}</td>
+        <td class="public-stats">
+          <template v-if="set.isPublic === 1">
+            <span>点赞 {{ set.likeCount ?? 0 }}</span>
+            <span>点踩 {{ set.dislikeCount ?? 0 }}</span>
+            <span>关注数 {{ set.publisherFollowerCount ?? 0 }}</span>
+          </template>
+          <span v-else>—</span>
+        </td>
         <td>{{ formatTime(set.createTime) }}</td>
         <td class="action-buttons">
           <button @click="handleEdit(set)" class="edit-btn">编辑</button>
@@ -57,7 +68,7 @@
         </td>
       </tr>
       <tr v-if="questionSets.length === 0">
-        <td colspan="5" class="empty-text">暂无题库数据</td>
+        <td colspan="7" class="empty-text">暂无题库数据</td>
       </tr>
       </tbody>
     </table>
@@ -341,6 +352,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.question-set-list {
+  width: 100%;
+}
+
 .loading-indicator {
   text-align: center;
   padding: 20px;
@@ -417,6 +432,13 @@ onMounted(() => {
 .set-table th {
   background-color: #f5f5f5;
   font-weight: bold;
+}
+
+.public-stats span {
+  display: inline-block;
+  margin-right: 10px;
+  font-size: 13px;
+  color: #606266;
 }
 
 .action-buttons {

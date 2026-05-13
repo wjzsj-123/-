@@ -140,7 +140,8 @@ onMounted(() => {
 
 <style scoped>
 .question-set-form {
-  max-width: 600px;
+  width: 100%;
+  max-width: 640px;
   margin: 0 auto;
 }
 

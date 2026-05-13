@@ -3,7 +3,7 @@
 
 <mapper namespace="com.example.demo.demos.web.mapper.QuestionSetMapper">
     <sql id="BaseColumnList">
-        id, name, description, category, user_id, create_time, update_time, is_public
+        id, name, description, category, user_id, create_time, update_time, is_public, publisher_id, publish_time, source_public_set_id
     </sql>
 
     <!-- 新增题库 -->
@@ -103,6 +103,35 @@
         ORDER BY create_time DESC
     </select>
 
+    <!-- 题库管理列表：含公开题库的投票与发布者粉丝数 -->
+    <select id="selectManageList" resultType="com.example.demo.demos.web.pojo.QuestionSet">
+        SELECT
+            qs.id, qs.name, qs.description, qs.category, qs.user_id, qs.create_time, qs.update_time,
+            qs.is_public, qs.publisher_id, qs.publish_time, qs.source_public_set_id,
+            COALESCE(v.like_count, 0) AS like_count,
+            COALESCE(v.dislike_count, 0) AS dislike_count,
+            CASE WHEN qs.publisher_id IS NOT NULL THEN
+                (SELECT COUNT(1) FROM user_follow uf WHERE uf.followee_id = qs.publisher_id)
+            ELSE 0 END AS publisher_follower_count
+        FROM question_set qs
+        LEFT JOIN (
+            SELECT
+                question_set_id,
+                SUM(CASE WHEN vote_type = 1 THEN 1 ELSE 0 END) AS like_count,
+                SUM(CASE WHEN vote_type = -1 THEN 1 ELSE 0 END) AS dislike_count
+            FROM question_set_vote
+            GROUP BY question_set_id
+        ) v ON v.question_set_id = qs.id
+        WHERE qs.user_id = #{userId}
+        <if test="category != null and category != ''">
+            AND qs.category = #{category}
+        </if>
+        <if test="name != null">
+            AND qs.name LIKE #{name}
+        </if>
+        ORDER BY qs.create_time DESC
+    </select>
+
     <!-- 发布公共题库 -->
     <update id="publishQuestionSet">
         UPDATE question_set
@@ -119,6 +148,8 @@
             COALESCE(v.like_count, 0) AS like_count,
             COALESCE(v.dislike_count, 0) AS dislike_count,
             (COALESCE(v.like_count, 0) * 2 - COALESCE(v.dislike_count, 0)) AS favorability,
+            COALESCE(imp.import_count, 0) AS import_count,
+            (COALESCE(v.like_count, 0) * 2 + COALESCE(imp.import_count, 0) * 3) AS hot_score,
             <choose>
                 <when test="currentUserId != null">
                     COALESCE((
@@ -132,8 +163,22 @@
                 <otherwise>
                     0 AS user_vote
                 </otherwise>
+            </choose>,
+            pu.nickname AS publisher_nickname,
+            pu.username AS publisher_username,
+            <choose>
+                <when test="currentUserId != null">
+                    EXISTS (
+                        SELECT 1 FROM user_follow uf
+                        WHERE uf.follower_id = #{currentUserId} AND uf.followee_id = qs.publisher_id
+                    ) AS viewer_follows_publisher
+                </when>
+                <otherwise>
+                    0 AS viewer_follows_publisher
+                </otherwise>
             </choose>
         FROM question_set qs
+        LEFT JOIN user pu ON pu.id = qs.publisher_id
         LEFT JOIN (
             SELECT
                 question_set_id,
@@ -142,6 +187,12 @@
             FROM question_set_vote
             GROUP BY question_set_id
         ) v ON v.question_set_id = qs.id
+        LEFT JOIN (
+            SELECT source_public_set_id AS public_set_id, COUNT(1) AS import_count
+            FROM question_set
+            WHERE source_public_set_id IS NOT NULL
+            GROUP BY source_public_set_id
+        ) imp ON imp.public_set_id = qs.id
         <trim prefix="WHERE" prefixOverrides="AND">
             qs.is_public = 1
         <if test="category != null and category != ''">
@@ -153,7 +204,7 @@
         </trim>
         <choose>
             <when test="sortBy == 'hot'">
-                ORDER BY favorability DESC, COALESCE(v.like_count, 0) DESC, qs.publish_time DESC
+                ORDER BY hot_score DESC, qs.publish_time DESC
             </when>
             <otherwise>
                 ORDER BY qs.publish_time DESC
@@ -181,10 +232,10 @@
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO question_set (
             user_id, name, description, category,
-            is_public, create_time, update_time
+            is_public, create_time, update_time, source_public_set_id
         ) VALUES (
                      #{userId}, #{name}, #{description}, #{category},
-                     #{isPublic}, #{createTime}, #{updateTime}
+                     #{isPublic}, #{createTime}, #{updateTime}, #{sourcePublicSetId}
                  )
     </insert>
 
@@ -197,4 +248,12 @@
             update_time = NOW()
         WHERE id = #{id}
     </update>
+
+    <select id="selectPublicByPublisherId" resultType="com.example.demo.demos.web.pojo.QuestionSet">
+        SELECT id, user_id, name, description, category, is_public, publisher_id, publish_time, create_time, update_time
+        FROM question_set
+        WHERE is_public = 1 AND publisher_id = #{publisherId}
+        ORDER BY publish_time DESC
+        LIMIT 200
+    </select>
 </mapper>

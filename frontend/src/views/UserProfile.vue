@@ -58,18 +58,20 @@ const saveProfile = () => {
 <style scoped>
 .profile-container {
   width: 100%;
-  height: 100%;
-  padding: 2rem;
-  background-color: #f8f9fa;
+  min-height: 0;
+  padding: 0;
+  background-color: transparent;
 }
 
 .profile-content {
-  margin-top: 1rem;
+  margin-top: 0;
   padding: 2rem;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  max-width: 500px;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .profile-form {

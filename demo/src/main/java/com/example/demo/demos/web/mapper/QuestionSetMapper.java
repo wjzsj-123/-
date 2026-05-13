@@ -58,6 +58,13 @@ public interface QuestionSetMapper {
             @Param("name") String name
     );
 
+    /** 题库管理：含公开题库的点赞/点踩与发布者粉丝数 */
+    List<QuestionSet> selectManageList(
+            @Param("userId") Long userId,
+            @Param("category") String category,
+            @Param("name") String name
+    );
+
     // 发布公共题库（更新is_public、publisher_id、publish_time）
     int publishQuestionSet(
             @Param("id") Long id,
@@ -96,4 +103,7 @@ public interface QuestionSetMapper {
             @Param("isPublic") Integer isPublic,
             @Param("publisherId") Long publisherId,
             @Param("publishTime") LocalDateTime publishTime);
+
+    /** 某用户发布的公开题库（用户中心展示） */
+    List<QuestionSet> selectPublicByPublisherId(@Param("publisherId") Long publisherId);
 }

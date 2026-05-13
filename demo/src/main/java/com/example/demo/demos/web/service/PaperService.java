@@ -4,6 +4,7 @@ import com.example.demo.demos.web.pojo.Paper;
 import com.example.demo.demos.web.pojo.UserAnswer;
 
 import java.util.List;
+import java.util.Map;
 
 public interface PaperService {
     // 新增试卷
@@ -54,4 +55,16 @@ public interface PaperService {
 
     //根据用户ID查询试卷数量
     int countByUserId(Long userId);
+
+    Paper sharePaper(Long paperId, Long userId);
+
+    List<Paper> getSharedPapers();
+
+    Map<String, Object> getPublicPapers(String name, String sortBy, Long currentUserId, Integer page, Integer size);
+
+    Paper copySharedPaper(Long paperId, Long userId);
+
+    Paper updatePaperPublicStatus(Long paperId, Long userId, Boolean isPublic);
+
+    void resetPaperForRetry(Long paperId, Long userId);
 }

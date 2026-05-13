@@ -22,6 +22,14 @@
       </div>
     </div>
 
+    <div class="study-plan-entry">
+      <div class="entry-card">
+        <h3>学习计划</h3>
+        <p>制定目标题库和每日刷题数，按计划高效学习</p>
+        <button class="practice-btn" @click="goStudyPlan">进入学习计划</button>
+      </div>
+    </div>
+
     <!-- 每日一题区域 -->
     <div class="daily-question-section">
       <div class="daily-question-card">
@@ -198,6 +206,10 @@ const userAnswer = ref(''); // 填空题用户输入答案
 const isAnswerCorrect = ref(false); // 答题是否正确
 
 const router = useRouter();
+
+const goStudyPlan = () => {
+  router.push('/home/study-plan');
+};
 
 // 校验答案是否有效（用于禁用提交按钮）
 const isAnswerValid = computed(() => {
@@ -427,9 +439,7 @@ onMounted(async () => {
 
 <style scoped>
 .home-content {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  width: 100%;
 }
 
 h2 {
@@ -438,9 +448,9 @@ h2 {
   font-size: 1.8rem;
 }
 
-/* 统计数据外层容器 - 限制宽度 */
+/* 统计数据外层容器 */
 .stats-wrapper {
-  max-width: 800px;
+  width: 100%;
   margin: 0 auto 40px;
   background: white;
   border-radius: 8px;
@@ -480,10 +490,23 @@ h2 {
   margin: 0;
 }
 
-/* 每日一题区域样式 */
+/* 每日一题区域 */
 .daily-question-section {
-  max-width: 800px;
+  width: 100%;
   margin: 0 auto;
+}
+
+.study-plan-entry {
+  width: 100%;
+  margin: 0 auto 24px;
+}
+
+.entry-card {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  text-align: center;
 }
 
 .daily-question-card {

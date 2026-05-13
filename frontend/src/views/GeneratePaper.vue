@@ -1,6 +1,6 @@
 <template>
   <div class="paper-generate-container">
-    <h2>从题库生成试卷</h2>
+    <h2>{{ mode === 'custom' ? '生成定制试卷' : '生成随机试卷' }}</h2>
 
     <form @submit.prevent="handleGeneratePaper" class="generate-form">
       <!-- 用户ID（实际场景可能从登录信息获取） -->
@@ -38,8 +38,7 @@
         >
       </div>
 
-      <!-- 题目数量设置 -->
-      <div class="form-row">
+      <div v-if="mode === 'random'" class="form-row">
         <div class="form-group">
           <label for="choiceCount">选择题数量 <span class="required">*</span></label>
           <input
@@ -83,6 +82,20 @@
         </div>
       </div>
 
+      <div v-else class="custom-questions">
+        <div class="custom-header">
+          <span>在目标题库中勾选题目（已选 {{ selectedQuestionIds.length }} 题）</span>
+          <button type="button" class="small-btn" @click="loadQuestions">刷新题目</button>
+        </div>
+        <div v-if="questions.length === 0" class="hint">暂无题目，请先在题库中创建题目</div>
+        <div v-for="(q, idx) in questions" :key="q.id" class="question-item">
+          <label>
+            <input type="checkbox" :value="q.id" v-model="selectedQuestionIds" />
+            {{ idx + 1 }}. [{{ typeText(q.type) }}] {{ q.content }}
+          </label>
+        </div>
+      </div>
+
       <div class="error-message" v-if="errorMsg">{{ errorMsg }}</div>
       <div class="total-count" v-if="form.choiceCount || form.fillCount || form.multiCount">
         试卷总题数: {{ form.choiceCount + form.fillCount + form.multiCount}} 道
@@ -91,7 +104,7 @@
       </div>
 
       <button type="submit" class="generate-btn" :disabled="isSubmitDisabled">
-        生成试卷
+        {{ mode === 'custom' ? '生成定制试卷' : '生成随机试卷' }}
       </button>
     </form>
   </div>
@@ -99,10 +112,12 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 
 // 路由实例
 const router = useRouter();
+const route = useRoute();
+const mode = ref('random');
 
 // 表单数据
 const form = ref({
@@ -121,9 +136,17 @@ const maxChoiceCount = ref(0);
 const maxFillCount = ref(0);
 const maxMultiCount = ref(0);
 const loading = ref(false);
+const questions = ref([]);
+const selectedQuestionIds = ref([]);
 
 // 提交按钮状态
 const isSubmitDisabled = computed(() => {
+  if (mode.value === 'custom') {
+    return loading.value ||
+        !form.value.questionSetId ||
+        !form.value.paperName.trim() ||
+        selectedQuestionIds.value.length === 0;
+  }
   return loading.value ||
       !form.value.questionSetId ||
       !form.value.paperName.trim() ||
@@ -132,6 +155,8 @@ const isSubmitDisabled = computed(() => {
 
 // 初始化 - 获取用户ID和题库列表
 onMounted(async () => {
+  const qMode = route.query.mode;
+  mode.value = qMode === 'custom' ? 'custom' : 'random';
   // 1. 获取当前登录用户ID（实际项目中从localStorage或全局状态获取）
   const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
   form.value.userId = userInfo.id;
@@ -174,9 +199,27 @@ const handleQuestionSetChange = async (e) => {
       maxChoiceCount.value = result.data.choiceCount || 0;
       maxFillCount.value = result.data.fillCount || 0;
       maxMultiCount.value = result.data.multiCount || 0;
+      if (mode.value === 'custom') {
+        await loadQuestions();
+      }
     }
   } catch (err) {
     console.error('获取题库题目数量失败', err);
+  }
+};
+
+const loadQuestions = async () => {
+  if (!form.value.questionSetId) return;
+  try {
+    const response = await fetch(`/api/question/question-set/${form.value.questionSetId}`);
+    const result = await response.json();
+    if (result.code === 0) {
+      questions.value = result.data || [];
+      const idSet = new Set(questions.value.map(item => item.id));
+      selectedQuestionIds.value = selectedQuestionIds.value.filter(id => idSet.has(id));
+    }
+  } catch (err) {
+    console.error('加载题库题目失败', err);
   }
 };
 
@@ -203,20 +246,30 @@ const handleGeneratePaper = async () => {
   loading.value = true;
 
   try {
-    // 构建查询参数
-    const params = new URLSearchParams();
-    params.append('userId', form.value.userId);
-    params.append('questionSetId', form.value.questionSetId);
-    params.append('paperName', form.value.paperName);
-    params.append('choiceCount', form.value.choiceCount);
-    params.append('fillCount', form.value.fillCount);
-    params.append('multiCount', form.value.multiCount);
-
-    // 调用后端生成接口
-    const response = await fetch('/api/paper/generate', {
-      method: 'POST',
-      body: params
-    });
+    let response;
+    if (mode.value === 'custom') {
+      const params = new URLSearchParams();
+      params.append('userId', form.value.userId);
+      params.append('questionSetId', form.value.questionSetId);
+      params.append('paperName', form.value.paperName);
+      response = await fetch(`/api/paper/generate-custom?${params.toString()}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(selectedQuestionIds.value)
+      });
+    } else {
+      const params = new URLSearchParams();
+      params.append('userId', form.value.userId);
+      params.append('questionSetId', form.value.questionSetId);
+      params.append('paperName', form.value.paperName);
+      params.append('choiceCount', form.value.choiceCount);
+      params.append('fillCount', form.value.fillCount);
+      params.append('multiCount', form.value.multiCount);
+      response = await fetch('/api/paper/generate', {
+        method: 'POST',
+        body: params
+      });
+    }
 
     const result = await response.json();
     if (result.code === 0) {
@@ -233,16 +286,23 @@ const handleGeneratePaper = async () => {
     loading.value = false;
   }
 };
+
+const typeText = (type) => {
+  if (type === 1) return '单选';
+  if (type === 2) return '填空';
+  if (type === 3) return '多选';
+  return '题目';
+};
 </script>
 
 <style scoped>
 .paper-generate-container {
-  max-width: 800px;
-  margin: 2rem auto;
-  padding: 2rem;
+  width: 100%;
+  margin: 0;
+  padding: 20px 24px;
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 h2 {
@@ -335,6 +395,30 @@ input:focus, select:focus {
 .generate-btn:disabled {
   background: #a0d995;
   cursor: not-allowed;
+}
+
+.custom-questions {
+  border: 1px solid #eaeaea;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.custom-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.small-btn {
+  border: 1px solid #ddd;
+  background: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.question-item {
+  padding: 8px 0;
+  border-top: 1px solid #f2f2f2;
 }
 
 @media (max-width: 768px) {

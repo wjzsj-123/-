@@ -66,9 +66,39 @@ const routes = [
                 meta: { requiresAuth: true }
             },
             {
+                path: 'online-paper',
+                component: () => import('@/views/OnlinePaper.vue'),
+                name: 'OnlinePaper',
+                meta: { requiresAuth: true }
+            },
+            {
                 path: 'online-bank/:id/discussion',
                 component: () => import('@/views/OnlineBankDiscussion.vue'),
                 name: 'OnlineBankDiscussion',
+                meta: { requiresAuth: true }
+            },
+            {
+                path: 'study-plan',
+                component: () => import('@/views/StudyPlan.vue'),
+                name: 'StudyPlan',
+                meta: { requiresAuth: true }
+            },
+            {
+                path: 'study-plan/practice',
+                component: () => import('@/views/StudyPlanPractice.vue'),
+                name: 'StudyPlanPractice',
+                meta: { requiresAuth: true }
+            },
+            {
+                path: 'user/center/:userId',
+                component: () => import('@/views/UserCenter.vue'),
+                name: 'UserCenter',
+                meta: { requiresAuth: true }
+            },
+            {
+                path: 'messages',
+                component: () => import('@/views/MessageCenter.vue'),
+                name: 'MessageCenter',
                 meta: { requiresAuth: true }
             },
             { path: 'user/profile', component: UserProfile }
@@ -81,28 +111,15 @@ const router = createRouter({
     routes
 })
 
-// 全局路由守卫
+// 全局路由守卫（所有 /home 下页面需登录）
 router.beforeEach((to, from, next) => {
     const userInfo = localStorage.getItem('userInfo');
-    const requireAuthPaths = [
-        '/home',
-        '/home/question-set',
-        '/home/paper',
-        '/home/paper/generate',
-        '/home/paper/answer/:paperId',
-        '/home/paper/result/:paperId',
-        '/home/user/profile',
-        '/home/online-bank',
-    ];
-
-    if (requireAuthPaths.includes(to.path)) {
+    if (to.path.startsWith('/home')) {
         userInfo ? next() : next('/login');
+    } else if ((to.path === '/login' || to.path === '/register') && userInfo) {
+        next('/home');
     } else {
-        if ((to.path === '/login' || to.path === '/register') && userInfo) {
-            next('/home');
-        } else {
-            next();
-        }
+        next();
     }
 });
 

@@ -83,4 +83,14 @@ public interface QuestionMapper {
 
     // 根据ID列表查询题目（关联选项/填空答案）
     List<Question> selectQuestionListByIds(@Param("ids") List<Long> ids);
+
+    // 学习计划：查询计划下未学完题目（限制数量）
+    List<Question> selectUnlearnedByPlan(
+            @Param("questionSetId") Long questionSetId,
+            @Param("planId") Long planId,
+            @Param("limit") Integer limit
+    );
+
+    // 学习计划：查询计划下全部错题
+    List<Question> selectWrongByPlan(@Param("planId") Long planId);
 }

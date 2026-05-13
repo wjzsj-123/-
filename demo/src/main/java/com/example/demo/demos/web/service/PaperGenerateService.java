@@ -4,6 +4,8 @@ import com.example.demo.demos.web.pojo.Paper;
 import com.example.demo.demos.web.pojo.PaperAnswerSubmit;
 import com.example.demo.demos.web.pojo.PaperResult;
 
+import java.util.List;
+
 /**
  * 试卷生成与判分服务接口
  */
@@ -20,6 +22,8 @@ public interface PaperGenerateService {
      */
     Paper generatePaper(Long userId, Long questionSetId, String paperName,
                         Integer choiceCount, Integer fillCount, Integer multiCount);
+
+    Paper generateCustomPaper(Long userId, Long questionSetId, String paperName, List<Long> questionIds);
 
     /**
      * 提交试卷并判分

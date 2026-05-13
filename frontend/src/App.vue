@@ -12,8 +12,9 @@ console.log('App 根组件已加载');
 #app-container {
   width: 100%;
   min-height: 100vh;
-  overflow: auto; /* 改为auto允许滚动 */
-  padding: 0 20px; /* 增加左右内边距 */
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0;
 }
 
 * {
@@ -28,16 +29,14 @@ body {
   background-color: #f9f9f9; /* 增加背景色区分内容区 */
 }
 
-/* 响应式基础设置 */
-@media (max-width: 768px) {
-  html {
-    font-size: 14px;
-  }
+/* 固定根字号，避免断点切换导致各页 rem 布局整体缩放、产生跳变感 */
+html {
+  font-size: 16px;
 }
 
-@media (min-width: 1200px) {
+@media (max-width: 768px) {
   html {
-    font-size: 18px;
+    font-size: 15px;
   }
 }
 </style>

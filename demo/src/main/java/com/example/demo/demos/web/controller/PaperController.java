@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/paper")
@@ -75,6 +76,28 @@ public class PaperController {
             return Result.error(e.getMessage());
         } catch (Exception e) {
             return Result.error("试卷生成失败：" + e.getMessage());
+        }
+    }
+
+    @PostMapping("/generate-custom")
+    public Result generateCustomPaper(
+            @RequestParam Long userId,
+            @RequestParam Long questionSetId,
+            @RequestParam String paperName,
+            @RequestBody List<Long> questionIds) {
+        try {
+            if (userId == null || questionSetId == null) {
+                return Result.error("用户ID和题库ID不能为空");
+            }
+            if (paperName == null || paperName.trim().isEmpty()) {
+                return Result.error("试卷名称不能为空");
+            }
+            Paper paper = paperGenerateService.generateCustomPaper(userId, questionSetId, paperName, questionIds);
+            return Result.success("定制试卷生成成功", paper);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("定制试卷生成失败：" + e.getMessage());
         }
     }
 
@@ -163,6 +186,88 @@ public class PaperController {
             return Result.error(e.getMessage());
         } catch (Exception e) {
             return Result.error("查询用户试卷失败：" + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{paperId}/share")
+    public Result sharePaper(@PathVariable Long paperId, @RequestParam Long userId) {
+        try {
+            Paper paper = paperService.sharePaper(paperId, userId);
+            Map<String, Object> data = new HashMap<>();
+            data.put("paper", paper);
+            data.put("shareCode", paper.getShareCode());
+            data.put("shareLink", "/#/home/paper?shareCode=" + paper.getShareCode());
+            return Result.success("分享成功", data);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("分享失败：" + e.getMessage());
+        }
+    }
+
+    @GetMapping("/shared")
+    public Result getSharedPapers() {
+        try {
+            List<Paper> papers = paperService.getSharedPapers();
+            return Result.success("查询成功", papers);
+        } catch (Exception e) {
+            return Result.error("查询在线试卷失败：" + e.getMessage());
+        }
+    }
+
+    @GetMapping("/public")
+    public Result getPublicPapers(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false, defaultValue = "publishTime") String sortBy,
+            @RequestParam(required = false) Long currentUserId,
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "10") Integer size
+    ) {
+        try {
+            Map<String, Object> data = paperService.getPublicPapers(name, sortBy, currentUserId, page, size);
+            return Result.success("查询成功", data);
+        } catch (Exception e) {
+            return Result.error("查询在线试卷失败：" + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{paperId}/copy")
+    public Result copySharedPaper(@PathVariable Long paperId, @RequestParam Long userId) {
+        try {
+            Paper paper = paperService.copySharedPaper(paperId, userId);
+            return Result.success("复制成功", paper);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("复制失败：" + e.getMessage());
+        }
+    }
+
+    @PutMapping("/{paperId}/public-status")
+    public Result updatePublicStatus(
+            @PathVariable Long paperId,
+            @RequestParam Long userId,
+            @RequestParam Boolean isPublic
+    ) {
+        try {
+            Paper paper = paperService.updatePaperPublicStatus(paperId, userId, isPublic);
+            return Result.success("更新成功", paper);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("更新公开状态失败：" + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{paperId}/retry")
+    public Result retryPaper(@PathVariable Long paperId, @RequestParam Long userId) {
+        try {
+            paperService.resetPaperForRetry(paperId, userId);
+            return Result.success("已重置，可重新作答");
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("重置试卷失败：" + e.getMessage());
         }
     }
 

@@ -217,4 +217,30 @@
             #{id}
         </foreach>
     </select>
+
+    <select id="selectUnlearnedByPlan" resultType="com.example.demo.demos.web.pojo.Question">
+        SELECT
+            q.id, q.question_set_id, q.content, q.tag, q.type, q.difficulty, q.create_time, q.update_time
+        FROM question q
+        LEFT JOIN study_plan_record r
+          ON r.question_id = q.id
+         AND r.plan_id = #{planId}
+        WHERE q.question_set_id = #{questionSetId}
+          AND (r.id IS NULL OR r.status != 1)
+        ORDER BY
+            CASE WHEN r.status = 2 THEN 0 ELSE 1 END ASC,
+            q.id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectWrongByPlan" resultType="com.example.demo.demos.web.pojo.Question">
+        SELECT
+            q.id, q.question_set_id, q.content, q.tag, q.type, q.difficulty, q.create_time, q.update_time
+        FROM question q
+        INNER JOIN study_plan_record r
+          ON r.question_id = q.id
+         AND r.plan_id = #{planId}
+        WHERE r.status = 2
+        ORDER BY q.id ASC
+    </select>
 </mapper>

@@ -2,18 +2,26 @@ package com.example.demo.demos.web.service.impl;
 
 import com.example.demo.demos.web.mapper.PaperMapper;
 import com.example.demo.demos.web.mapper.UserAnswerMapper;
-import com.example.demo.demos.web.mapper.UserMapper;
 import com.example.demo.demos.web.pojo.*;
 import com.example.demo.demos.web.service.FillAnswerService;
 import com.example.demo.demos.web.service.PaperQuestionService;
 import com.example.demo.demos.web.service.PaperService;
 import com.example.demo.demos.web.service.QuestionOptionService;
+import com.example.demo.demos.web.service.UserMessageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class PaperServiceImpl implements PaperService {
@@ -33,6 +41,9 @@ public class PaperServiceImpl implements PaperService {
     @Resource
     private FillAnswerService fillAnswerService;
 
+    @Resource
+    private UserMessageService userMessageService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int addPaper(Paper paper) {
@@ -41,6 +52,9 @@ public class PaperServiceImpl implements PaperService {
         }
         if (paper.getUserId() == null) {
             throw new IllegalArgumentException("创建者ID不能为空");
+        }
+        if (paper.getIsShared() == null) {
+            paper.setIsShared(false);
         }
         paper.setCreateTime(LocalDateTime.now()); // 自动设置创建时间
         return paperMapper.insert(paper);
@@ -188,6 +202,175 @@ public class PaperServiceImpl implements PaperService {
             throw new IllegalArgumentException("用户ID不能为空");
         }
         return paperMapper.countByUserId(userId); // 需要在PaperMapper中添加对应方法
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Paper sharePaper(Long paperId, Long userId) {
+        Paper paper = paperMapper.selectById(paperId);
+        if (paper == null) {
+            throw new IllegalArgumentException("试卷不存在");
+        }
+        if (!paper.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("只能分享自己的试卷");
+        }
+        if (paper.getShareCode() == null || paper.getShareCode().trim().isEmpty()) {
+            paper.setShareCode(UUID.randomUUID().toString().replace("-", ""));
+        }
+        boolean wasShared = Boolean.TRUE.equals(paper.getIsShared());
+        paper.setIsShared(true);
+        paperMapper.updateById(paper);
+        if (!wasShared) {
+            userMessageService.notifyFollowersNewSharedPaper(userId, paperId, paper.getTitle());
+        }
+        return paperMapper.selectById(paperId);
+    }
+
+    @Override
+    public List<Paper> getSharedPapers() {
+        List<Paper> papers = paperMapper.selectShared();
+        enrichQuestionTags(papers);
+        return papers;
+    }
+
+    @Override
+    public Map<String, Object> getPublicPapers(String name, String sortBy, Long currentUserId, Integer page, Integer size) {
+        if (name != null && !name.trim().isEmpty()) {
+            name = "%" + name.trim() + "%";
+        } else {
+            name = null;
+        }
+        if (!"hot".equals(sortBy)) {
+            sortBy = "publishTime";
+        }
+        if (page == null || page < 1) {
+            page = 1;
+        }
+        if (size == null || size < 1 || size > 50) {
+            size = 10;
+        }
+        int offset = (page - 1) * size;
+        List<Paper> papers = paperMapper.selectPublicPapers(name, sortBy, currentUserId, offset, size);
+        enrichQuestionTags(papers);
+        int total = paperMapper.countPublicPapers(name);
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", papers);
+        result.put("total", total);
+        result.put("page", page);
+        result.put("size", size);
+        return result;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Paper copySharedPaper(Long paperId, Long userId) {
+        Paper source = paperMapper.selectById(paperId);
+        if (source == null || source.getIsShared() == null || !source.getIsShared()) {
+            throw new IllegalArgumentException("在线试卷不存在或未分享");
+        }
+
+        Paper target = new Paper();
+        target.setUserId(userId);
+        target.setTitle(source.getTitle() + "（副本）");
+        target.setDescription(source.getDescription());
+        target.setCategory(source.getCategory());
+        target.setTotalQuestions(source.getTotalQuestions());
+        target.setCreateTime(LocalDateTime.now());
+        target.setIsShared(false);
+        target.setSourcePaperId(source.getId());
+        addPaper(target);
+
+        List<Long> sourceQuestionIds = paperQuestionService.getQuestionIdsByPaperId(source.getId());
+        List<PaperQuestion> relations = new ArrayList<>();
+        for (int i = 0; i < sourceQuestionIds.size(); i++) {
+            PaperQuestion pq = new PaperQuestion();
+            pq.setPaperId(target.getId());
+            pq.setQuestionId(sourceQuestionIds.get(i));
+            pq.setSortOrder(i + 1);
+            relations.add(pq);
+        }
+        if (!relations.isEmpty()) {
+            paperQuestionService.batchAdd(relations);
+        }
+        return paperMapper.selectById(target.getId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Paper updatePaperPublicStatus(Long paperId, Long userId, Boolean isPublic) {
+        if (paperId == null || userId == null || isPublic == null) {
+            throw new IllegalArgumentException("参数不能为空");
+        }
+        Paper paper = paperMapper.selectById(paperId);
+        if (paper == null) {
+            throw new IllegalArgumentException("试卷不存在");
+        }
+        if (!userId.equals(paper.getUserId())) {
+            throw new IllegalArgumentException("只能修改自己的试卷可见性");
+        }
+        boolean wasShared = Boolean.TRUE.equals(paper.getIsShared());
+        paper.setIsShared(isPublic);
+        if (isPublic && (paper.getShareCode() == null || paper.getShareCode().trim().isEmpty())) {
+            paper.setShareCode(UUID.randomUUID().toString().replace("-", ""));
+        }
+        if (!isPublic) {
+            paper.setShareCode(null);
+        }
+        paperMapper.updateById(paper);
+        if (Boolean.TRUE.equals(isPublic) && !wasShared) {
+            userMessageService.notifyFollowersNewSharedPaper(userId, paperId, paper.getTitle());
+        }
+        return paperMapper.selectById(paperId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void resetPaperForRetry(Long paperId, Long userId) {
+        if (paperId == null || userId == null) {
+            throw new IllegalArgumentException("参数不能为空");
+        }
+        Paper paper = paperMapper.selectById(paperId);
+        if (paper == null) {
+            throw new IllegalArgumentException("试卷不存在");
+        }
+        if (!userId.equals(paper.getUserId())) {
+            throw new IllegalArgumentException("只能重做自己的试卷");
+        }
+        userAnswerMapper.deleteByPaperIdAndUserId(paperId, userId);
+        paper.setIsAnswered(false);
+        paper.setLastAnswerTime(null);
+        paperMapper.updateById(paper);
+    }
+
+    private void enrichQuestionTags(List<Paper> papers) {
+        for (Paper paper : papers) {
+            Paper detail = paperMapper.selectWithQuestionsById(paper.getId());
+            if (detail == null) {
+                paper.setQuestionTags(new ArrayList<>());
+                continue;
+            }
+            List<String> rawTags = detail.getQuestions().stream()
+                    .map(Question::getTag)
+                    .collect(Collectors.toList());
+            paper.setQuestionTags(mergeTags(rawTags));
+        }
+    }
+
+    private List<String> mergeTags(List<String> rawTags) {
+        if (rawTags == null || rawTags.isEmpty()) {
+            return new ArrayList<>();
+        }
+        Set<String> unique = new LinkedHashSet<>();
+        for (String rawTag : rawTags) {
+            if (rawTag == null || rawTag.trim().isEmpty()) {
+                continue;
+            }
+            Arrays.stream(rawTag.split("[,，]"))
+                    .map(String::trim)
+                    .filter(tag -> !tag.isEmpty())
+                    .forEach(unique::add);
+        }
+        return new ArrayList<>(unique);
     }
 
     // 辅助方法：判分逻辑

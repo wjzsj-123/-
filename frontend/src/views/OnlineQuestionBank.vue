@@ -29,7 +29,7 @@
         <label>排序方式：</label>
         <select v-model="searchParams.sortBy" @change="onSortChange">
           <option value="publishTime">按发布时间</option>
-          <option value="hot">按好评度</option>
+          <option value="hot">按热度</option>
         </select>
       </div>
       <button class="search-btn" @click="getPublicQuestionSets">搜索</button>
@@ -41,13 +41,26 @@
       <div class="bank-card" v-for="bank in bankList" :key="bank.id">
         <div class="bank-header">
           <p><span class="label">分类：</span>{{ bank.category }}</p>
-          <span class="publisher">发布者ID：{{ bank.publisherId }}</span>
+          <div class="publisher-line" v-if="bank.publisherId">
+            <router-link class="publisher-name" :to="'/home/user/center/' + bank.publisherId">
+              {{ publisherDisplayName(bank) }}
+            </router-link>
+            <button
+              v-if="canFollowPublisher(bank)"
+              type="button"
+              class="follow-pub-btn"
+              @click.stop="toggleFollowPublisher(bank)"
+            >
+              {{ bank.viewerFollowsPublisher ? '取消关注' : '关注' }}
+            </button>
+          </div>
+          <span v-else class="publisher">发布者：—</span>
         </div>
         <div class="bank-body">
           <h3>{{ bank.name }}</h3>
           <p><span class="label">发布时间：</span>{{ formatTime(bank.publishTime) }}</p>
-          <p><span class="label">点赞：</span>{{ bank.likeCount || 0 }} <span class="label">点踩：</span>{{ bank.dislikeCount || 0 }}</p>
-          <p><span class="label">好评度：</span>{{ bank.favorability || 0 }}</p>
+          <p><span class="label">热度：</span>{{ bank.hotScore ?? 0 }}（点赞 {{ bank.likeCount || 0 }} / 导入 {{ bank.importCount || 0 }}）</p>
+          <p><span class="label">点踩：</span>{{ bank.dislikeCount || 0 }} <span class="label">好评度：</span>{{ bank.favorability || 0 }}</p>
           <div class="tag-list">
             <span class="label">题库标签：</span>
             <template v-if="bank.questionTags && bank.questionTags.length">
@@ -242,6 +255,7 @@ const importBank = async (publicSetId) => {
 
     if (result.code === 0) {
       ElMessage.success('导入成功，已添加到我的题库')
+      await getPublicQuestionSets()
     } else {
       ElMessage.error(result.message || '导入失败')
     }
@@ -253,6 +267,34 @@ const importBank = async (publicSetId) => {
 
 const goDiscussion = (setId) => {
   router.push(`/home/online-bank/${setId}/discussion`)
+}
+
+const publisherDisplayName = (bank) => {
+  return bank.publisherNickname || bank.publisherUsername || `用户${bank.publisherId}`
+}
+
+const canFollowPublisher = (bank) => {
+  if (!bank.publisherId || !currentUserId.value) return false
+  return String(bank.publisherId) !== String(currentUserId.value)
+}
+
+const toggleFollowPublisher = async (bank) => {
+  if (!canFollowPublisher(bank)) return
+  const pid = bank.publisherId
+  const following = !!bank.viewerFollowsPublisher
+  try {
+    const url = `/api/user-center/follow?followerId=${currentUserId.value}&followeeId=${pid}`
+    const response = await fetch(url, { method: following ? 'DELETE' : 'POST' })
+    const result = await response.json()
+    if (result.code === 0) {
+      ElMessage.success(following ? '已取消关注' : '关注成功')
+      await getPublicQuestionSets()
+    } else {
+      ElMessage.error(result.message || '操作失败')
+    }
+  } catch {
+    ElMessage.error('网络错误')
+  }
 }
 
 const voteBank = async (bank, voteType) => {
@@ -321,9 +363,7 @@ onMounted(() => {
 
 <style scoped>
 .online-bank-container {
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 /* 搜索栏样式 */
@@ -410,6 +450,39 @@ onMounted(() => {
 .bank-header .publisher {
   font-size: 12px;
   color: #999;
+}
+
+.publisher-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.publisher-name {
+  color: #409eff;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.publisher-name:hover {
+  text-decoration: underline;
+}
+
+.follow-pub-btn {
+  padding: 4px 12px;
+  font-size: 13px;
+  border: 1px solid #42b983;
+  background: #fff;
+  color: #42b983;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.follow-pub-btn:hover {
+  background: #f0fff6;
 }
 
 .bank-body {

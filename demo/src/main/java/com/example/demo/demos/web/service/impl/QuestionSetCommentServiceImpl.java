@@ -7,6 +7,7 @@ import com.example.demo.demos.web.pojo.QuestionSet;
 import com.example.demo.demos.web.pojo.QuestionSetComment;
 import com.example.demo.demos.web.pojo.QuestionSetCommentLike;
 import com.example.demo.demos.web.service.QuestionSetCommentService;
+import com.example.demo.demos.web.service.UserMessageService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,9 @@ public class QuestionSetCommentServiceImpl implements QuestionSetCommentService 
 
     @Resource
     private QuestionSetMapper questionSetMapper;
+
+    @Resource
+    private UserMessageService userMessageService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -58,6 +62,17 @@ public class QuestionSetCommentServiceImpl implements QuestionSetCommentService 
 
         comment.setContent(comment.getContent().trim());
         questionSetCommentMapper.insert(comment);
+
+        Long recipient = set.getPublisherId() != null ? set.getPublisherId() : set.getUserId();
+        if (recipient != null && !recipient.equals(comment.getUserId())) {
+            userMessageService.notifyDiscussionComment(
+                    recipient,
+                    set.getId(),
+                    comment.getId(),
+                    comment.getUserId(),
+                    comment.getContent()
+            );
+        }
         return comment.getId();
     }
 

@@ -468,11 +468,10 @@ watch(currentQuestion, (newVal) => {
 
 .paper-detail-container {
   width: 100%;
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 2rem;
-  background-color: #f8f9fa;
-  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background-color: transparent;
+  min-height: 0;
 }
 
 .paper-header {
@@ -653,7 +652,7 @@ watch(currentQuestion, (newVal) => {
 /* 响应式调整 */
 @media (max-width: 768px) {
   .paper-detail-container {
-    padding: 1rem;
+    padding: 0;
   }
 
   .question-card {

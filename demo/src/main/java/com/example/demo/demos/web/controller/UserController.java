@@ -79,6 +79,9 @@ public class UserController {
                 return Result.error("用户ID不能为空");
             }
             User user = userService.getUserById(id);
+            if (user != null) {
+                user.setPassword(null);
+            }
             return user != null ? Result.success("查询成功", user) : Result.error("未找到该用户");
         } catch (Exception e) {
             return Result.error("查询用户失败：" + e.getMessage());
@@ -127,6 +130,7 @@ public class UserController {
         if (dbUser == null || !dbUser.getPassword().equals(user.getPassword())) {
             return Result.error("用户名或密码错误");
         }
+        dbUser.setPassword(null);
         return Result.success("登录成功", dbUser);
     }
 }

@@ -18,6 +18,19 @@ public class Paper {
     private LocalDateTime createTime; // 创建时间
     private Boolean isAnswered; // 核心：是否作答
     private LocalDateTime lastAnswerTime; // 最后作答时间（可为null）
+    private Boolean isShared; // 是否已分享到在线试卷
+    private String shareCode; // 分享码
+    private Long sourcePaperId; // 来源试卷ID（复制场景）
+    private List<String> questionTags; // 试卷题目标签聚合
+    private Integer answerCount; // 作答人数（热度因子）
+    private Integer copyCount; // 被复制次数（热度因子）
+    private Integer hotScore; // 综合热度分
+
+    /** 发布者（试卷所有者）展示名 */
+    private String publisherNickname;
+    private String publisherUsername;
+    /** 当前用户是否已关注发布者 */
+    private Boolean viewerFollowsPublisher;
 
     // 非数据库字段，用于关联查询
     private User user;             // 关联创建者信息

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.demos.web.mapper.UserMessageMapper">
+
+    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.UserMessage" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_message (
+            user_id, type, title, content_preview,
+            ref_question_set_id, ref_paper_id, ref_comment_id, actor_user_id, created_at
+        ) VALUES (
+            #{userId}, #{type}, #{title}, #{contentPreview},
+            #{refQuestionSetId}, #{refPaperId}, #{refCommentId}, #{actorUserId}, NOW()
+        )
+    </insert>
+
+    <select id="selectByUserIdPage" resultType="com.example.demo.demos.web.pojo.UserMessage">
+        SELECT id, user_id, type, title, content_preview,
+               ref_question_set_id, ref_paper_id, ref_comment_id, actor_user_id, read_at, created_at
+        FROM user_message
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+        LIMIT #{size} OFFSET #{offset}
+    </select>
+
+    <select id="countByUserId" resultType="int">
+        SELECT COUNT(1) FROM user_message WHERE user_id = #{userId}
+    </select>
+
+    <select id="countUnread" resultType="int">
+        SELECT COUNT(1) FROM user_message WHERE user_id = #{userId} AND read_at IS NULL
+    </select>
+
+    <select id="selectLatestUnread" resultType="com.example.demo.demos.web.pojo.UserMessage">
+        SELECT id, user_id, type, title, content_preview,
+               ref_question_set_id, ref_paper_id, ref_comment_id, actor_user_id, read_at, created_at
+        FROM user_message
+        WHERE user_id = #{userId} AND read_at IS NULL
+        ORDER BY created_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <update id="markRead">
+        UPDATE user_message
+        SET read_at = NOW()
+        WHERE id = #{id} AND user_id = #{userId} AND read_at IS NULL
+    </update>
+
+    <select id="selectById" resultType="com.example.demo.demos.web.pojo.UserMessage">
+        SELECT id, user_id, type, title, content_preview,
+               ref_question_set_id, ref_paper_id, ref_comment_id, actor_user_id, read_at, created_at
+        FROM user_message WHERE id = #{id}
+    </select>
+</mapper>

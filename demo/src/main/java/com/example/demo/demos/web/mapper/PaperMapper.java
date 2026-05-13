@@ -34,4 +34,22 @@ public interface PaperMapper {
 
     // 根据用户ID统计试卷数量
     int countByUserId(Long userId);
+
+    // 查询在线共享试卷
+    List<Paper> selectShared();
+
+    List<Paper> selectPublicPapers(
+            @Param("name") String name,
+            @Param("sortBy") String sortBy,
+            @Param("currentUserId") Long currentUserId,
+            @Param("offset") Integer offset,
+            @Param("size") Integer size);
+
+    int countPublicPapers(@Param("name") String name);
+
+    /** 某用户公开的在线试卷（用户中心展示） */
+    List<Paper> selectSharedByUserId(@Param("userId") Long userId);
+
+    // 根据分享码查询试卷
+    Paper selectByShareCode(@Param("shareCode") String shareCode);
 }

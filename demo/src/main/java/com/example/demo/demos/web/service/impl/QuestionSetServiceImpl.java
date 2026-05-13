@@ -6,6 +6,7 @@ import com.example.demo.demos.web.listener.QuestionExcelListener;
 import com.example.demo.demos.web.mapper.*;
 import com.example.demo.demos.web.pojo.*;
 import com.example.demo.demos.web.service.QuestionSetService;
+import com.example.demo.demos.web.service.UserMessageService;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +52,9 @@ public class QuestionSetServiceImpl implements QuestionSetService {
 
     @Resource
     private QuestionSetVoteMapper questionSetVoteMapper;
+
+    @Resource
+    private UserMessageService userMessageService;
 
     @Override
     public int createQuestionSet(QuestionSet questionSet) {
@@ -211,7 +215,7 @@ public class QuestionSetServiceImpl implements QuestionSetService {
         }
         // 处理模糊查询的通配符（如果名称不为空）
         String likeName = (name != null && !name.trim().isEmpty()) ? "%" + name.trim() + "%" : null;
-        return questionSetMapper.selectByUserIdAndCategoryAndNameLike(userId, category, likeName);
+        return questionSetMapper.selectManageList(userId, category, likeName);
     }
 
     @Override
@@ -367,18 +371,29 @@ public class QuestionSetServiceImpl implements QuestionSetService {
             throw new IllegalArgumentException("无权限发布该题库");
         }
         // 发布题库（更新为公共）
-        return questionSetMapper.publishQuestionSet(
+        int rows = questionSetMapper.publishQuestionSet(
                 setId,
                 publisherId,
                 LocalDateTime.now()
         );
+        if (rows > 0) {
+            QuestionSet published = questionSetMapper.selectById(setId);
+            userMessageService.notifyFollowersNewPublicQuestionSet(
+                    publisherId,
+                    setId,
+                    published != null ? published.getName() : ""
+            );
+        }
+        return rows;
     }
 
     @Override
     public Map<String, Object> getPublicQuestionSets(String category, String name, String sortBy, Long currentUserId, Integer page, Integer size) {
         // 名称模糊查询处理（前端传关键词，后端拼接%）
-        if (name != null && !name.isEmpty()) {
-            name = "%" + name + "%";
+        if (name != null && !name.trim().isEmpty()) {
+            name = name.trim();
+        } else {
+            name = null;
         }
         if (!"hot".equals(sortBy)) {
             sortBy = "publishTime";
@@ -454,6 +469,7 @@ public class QuestionSetServiceImpl implements QuestionSetService {
         newPrivateSet.setDescription(publicSet.getDescription());
         newPrivateSet.setCategory(publicSet.getCategory());
         newPrivateSet.setIsPublic(0); // 私有题库
+        newPrivateSet.setSourcePublicSetId(publicSetId);
         newPrivateSet.setCreateTime(LocalDateTime.now());
         newPrivateSet.setUpdateTime(LocalDateTime.now());
         // 插入新私有题库
@@ -517,13 +533,28 @@ public class QuestionSetServiceImpl implements QuestionSetService {
             throw new IllegalArgumentException("发布人ID不能为空（公共题库必须指定发布人）");
         }
 
+        QuestionSet before = questionSetMapper.selectById(id);
+
         // 转换Boolean为数据库存储的Integer（1/0）
         Integer publicStatus = isPublic ? 1 : 0;
         // 公共状态：设置发布时间为当前时间；私有状态：清空发布人+发布时间（可根据业务调整）
         LocalDateTime publishTime = isPublic ? LocalDateTime.now() : null;
-        publisherId = isPublic ? publisherId : null;
+        Long pid = isPublic ? publisherId : null;
 
-        return questionSetMapper.updatePublicStatus(id, publicStatus, publisherId, publishTime);
+        int rows = questionSetMapper.updatePublicStatus(id, publicStatus, pid, publishTime);
+        if (rows > 0 && Boolean.TRUE.equals(isPublic)
+                && before != null && (before.getIsPublic() == null || before.getIsPublic() != 1)) {
+            QuestionSet after = questionSetMapper.selectById(id);
+            Long notifyPublisher = pid != null ? pid : (after != null ? after.getPublisherId() : null);
+            if (notifyPublisher != null) {
+                userMessageService.notifyFollowersNewPublicQuestionSet(
+                        notifyPublisher,
+                        id,
+                        after != null ? after.getName() : ""
+                );
+            }
+        }
+        return rows;
     }
 
     private List<String> mergeQuestionTags(List<String> rawTags) {

@@ -70,6 +70,7 @@ public class PaperGenerateServiceImpl implements PaperGenerateService {
         paper.setTitle(paperName);
         paper.setTotalQuestions(choiceCount + fillCount + multiCount);
         paper.setCreateTime(LocalDateTime.now());
+        paper.setIsShared(false);
         paperService.addPaper(paper); // 新增试卷获取ID
         if (paper.getId() == null) {
             throw new RuntimeException("试卷ID生成失败，无法关联题目");
@@ -102,6 +103,52 @@ public class PaperGenerateServiceImpl implements PaperGenerateService {
         paperQuestionService.batchAdd(paperQuestions);
 
         // 7. 返回包含题目信息的试卷
+        return paperService.getPaperWithQuestionsById(paper.getId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Paper generateCustomPaper(Long userId, Long questionSetId, String paperName, List<Long> questionIds) {
+        if (questionIds == null || questionIds.isEmpty()) {
+            throw new IllegalArgumentException("请至少选择1道题");
+        }
+        QuestionSet questionSet = questionSetService.getQuestionSetById(questionSetId);
+        if (questionSet == null) {
+            throw new IllegalArgumentException("题库不存在");
+        }
+        List<Question> sourceQuestions = questionService.getQuestionsBySetId(questionSetId);
+        Map<Long, Question> questionMap = sourceQuestions.stream()
+                .collect(Collectors.toMap(Question::getId, q -> q));
+        List<Question> selected = new ArrayList<>();
+        for (Long qid : questionIds) {
+            Question q = questionMap.get(qid);
+            if (q == null) {
+                throw new IllegalArgumentException("存在不属于题库的题目: " + qid);
+            }
+            selected.add(q);
+        }
+
+        Paper paper = new Paper();
+        paper.setUserId(userId);
+        paper.setTitle(paperName);
+        paper.setTotalQuestions(selected.size());
+        paper.setCreateTime(LocalDateTime.now());
+        paper.setIsShared(false);
+        paperService.addPaper(paper);
+        if (paper.getId() == null) {
+            throw new RuntimeException("试卷ID生成失败，无法关联题目");
+        }
+
+        List<PaperQuestion> paperQuestions = new ArrayList<>();
+        int sortOrder = 1;
+        for (Question question : selected) {
+            PaperQuestion pq = new PaperQuestion();
+            pq.setPaperId(paper.getId());
+            pq.setQuestionId(question.getId());
+            pq.setSortOrder(sortOrder++);
+            paperQuestions.add(pq);
+        }
+        paperQuestionService.batchAdd(paperQuestions);
         return paperService.getPaperWithQuestionsById(paper.getId());
     }
 

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.demo.demos.web.mapper.StudyPlanMapper">
+    <insert id="insert" parameterType="com.example.demo.demos.web.pojo.StudyPlan"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO study_plan (
+            user_id, question_set_id, daily_count, create_time, update_time
+        ) VALUES (
+            #{userId}, #{questionSetId}, #{dailyCount}, NOW(), NOW()
+        )
+    </insert>
+
+    <update id="updateById" parameterType="com.example.demo.demos.web.pojo.StudyPlan">
+        UPDATE study_plan
+        SET question_set_id = #{questionSetId},
+            daily_count = #{dailyCount},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectByUserId" resultType="com.example.demo.demos.web.pojo.StudyPlan">
+        SELECT id, user_id, question_set_id, daily_count, create_time, update_time
+        FROM study_plan
+        WHERE user_id = #{userId}
+        ORDER BY id DESC
+    </select>
+
+    <select id="selectById" resultType="com.example.demo.demos.web.pojo.StudyPlan">
+        SELECT id, user_id, question_set_id, daily_count, create_time, update_time
+        FROM study_plan
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByUserIdAndQuestionSetId" resultType="com.example.demo.demos.web.pojo.StudyPlan">
+        SELECT id, user_id, question_set_id, daily_count, create_time, update_time
+        FROM study_plan
+        WHERE user_id = #{userId}
+          AND question_set_id = #{questionSetId}
+        LIMIT 1
+    </select>
+
+    <delete id="deleteById">
+        DELETE FROM study_plan WHERE id = #{id}
+    </delete>
+
+    <select id="countLearnedQuestions" resultType="java.lang.Integer">
+        SELECT COUNT(1)
+        FROM study_plan_record
+        WHERE plan_id = #{planId}
+          AND status = 1
+    </select>
+</mapper>
