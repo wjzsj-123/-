@@ -28,4 +28,8 @@ public class QuestionExcelDTO {
 
     @ExcelProperty(value = "正确答案", index = 7)
     private String correctAnswer; // 单选/多选存选项序号（A/B/C/D），判断存"对"/"错"，填空存具体文本
+
+    /** 多个标签用英文逗号分隔，与题目表 tag 字段一致 */
+    @ExcelProperty(value = "标签", index = 8)
+    private String tag;
 }

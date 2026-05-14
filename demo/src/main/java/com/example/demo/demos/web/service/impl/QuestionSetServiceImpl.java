@@ -270,6 +270,8 @@ public class QuestionSetServiceImpl implements QuestionSetService {
                 dto.setCorrectAnswer(getFillAnswer(question.getId()));
             }
 
+            dto.setTag(question.getTag() != null ? question.getTag() : "");
+
             excelDTOs.add(dto);
         }
         return excelDTOs;
@@ -342,7 +344,7 @@ public class QuestionSetServiceImpl implements QuestionSetService {
         }
     }
 
-    // 导入Excel到题库
+    @Override
     public int importQuestionSet(Long setId, InputStream inputStream) {
         if (setId == null) {
             throw new IllegalArgumentException("题库ID不能为空");

@@ -47,7 +47,7 @@
           <template v-if="set.isPublic === 1">
             <span>点赞 {{ set.likeCount ?? 0 }}</span>
             <span>点踩 {{ set.dislikeCount ?? 0 }}</span>
-            <span>关注数 {{ set.publisherFollowerCount ?? 0 }}</span>
+            <span>被复制次数 {{ set.importCount ?? 0 }}</span>
           </template>
           <span v-else>—</span>
         </td>

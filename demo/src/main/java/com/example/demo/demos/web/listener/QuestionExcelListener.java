@@ -116,9 +116,30 @@ public class QuestionExcelListener implements ReadListener<QuestionExcelDTO> {
         question.setContent(dto.getContent());
         question.setType(convertType(dto.getType())); // 文本转数字类型
         question.setDifficulty(dto.getDifficulty());
+        question.setTag(normalizeImportedTags(dto.getTag()));
         question.setCreateTime(LocalDateTime.now());
         question.setUpdateTime(LocalDateTime.now());
         return question;
+    }
+
+    /** 多个标签支持英文或中文逗号分隔，入库统一为英文逗号 */
+    private String normalizeImportedTags(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return null;
+        }
+        String[] parts = raw.split("[,，]");
+        StringBuilder sb = new StringBuilder();
+        for (String p : parts) {
+            String t = p.trim();
+            if (t.isEmpty()) {
+                continue;
+            }
+            if (sb.length() > 0) {
+                sb.append(',');
+            }
+            sb.append(t);
+        }
+        return sb.length() == 0 ? null : sb.toString();
     }
 
     /**

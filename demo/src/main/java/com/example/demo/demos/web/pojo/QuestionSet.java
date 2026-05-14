@@ -44,9 +44,6 @@ public class QuestionSet {
     /** 当前用户是否已关注发布者（登录且传 currentUserId 时有效） */
     private Boolean viewerFollowsPublisher;
 
-    /** 题库管理：发布者粉丝数（被关注数），仅公开题库有统计意义 */
-    private Integer publisherFollowerCount;
-
     // 公共题库字段
     private Integer isPublic; // 0-私有，1-公共
     private Long publisherId; // 发布者ID
