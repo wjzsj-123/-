@@ -27,6 +27,42 @@ public class StudyPlanController {
         }
     }
 
+    @GetMapping("/{planId}")
+    public Result getPlanDetail(@PathVariable Long planId, @RequestParam Long userId) {
+        try {
+            StudyPlan plan = studyPlanService.getPlanDetail(userId, planId);
+            return Result.success("查询成功", plan);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("查询学习计划失败：" + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{planId}")
+    public Result deletePlan(@PathVariable Long planId, @RequestParam Long userId) {
+        try {
+            studyPlanService.deletePlan(userId, planId);
+            return Result.success("学习计划已删除", null);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("删除学习计划失败：" + e.getMessage());
+        }
+    }
+
+    @PostMapping("/{planId}/reset")
+    public Result resetPlanProgress(@PathVariable Long planId, @RequestParam Long userId) {
+        try {
+            studyPlanService.resetPlanProgress(userId, planId);
+            return Result.success("已重置学习进度，可重新开始学习", null);
+        } catch (IllegalArgumentException e) {
+            return Result.error(e.getMessage());
+        } catch (Exception e) {
+            return Result.error("重置学习进度失败：" + e.getMessage());
+        }
+    }
+
     @PostMapping
     public Result savePlan(@RequestBody StudyPlan plan) {
         try {

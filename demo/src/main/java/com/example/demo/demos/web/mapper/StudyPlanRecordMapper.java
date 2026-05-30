@@ -16,4 +16,6 @@ public interface StudyPlanRecordMapper {
     int markLearned(@Param("id") Long id);
 
     int markWrong(@Param("id") Long id);
+
+    int deleteByPlanId(@Param("planId") Long planId);
 }

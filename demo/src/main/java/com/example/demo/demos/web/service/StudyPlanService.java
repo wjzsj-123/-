@@ -15,4 +15,10 @@ public interface StudyPlanService {
     List<Question> getWrongQuestions(Long userId, Long planId);
 
     void submitQuestionResult(Long userId, Long planId, Long questionId, Boolean correct);
+
+    StudyPlan getPlanDetail(Long userId, Long planId);
+
+    void deletePlan(Long userId, Long planId);
+
+    void resetPlanProgress(Long userId, Long planId);
 }

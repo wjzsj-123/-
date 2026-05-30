@@ -1,6 +1,8 @@
 package com.example.demo.demos.web.service.impl;
 
+import com.example.demo.demos.web.common.UserDisplayNames;
 import com.example.demo.demos.web.mapper.UserFollowMapper;
+import com.example.demo.demos.web.mapper.UserMapper;
 import com.example.demo.demos.web.mapper.UserMessageMapper;
 import com.example.demo.demos.web.pojo.User;
 import com.example.demo.demos.web.pojo.UserMessage;
@@ -25,6 +27,8 @@ public class UserMessageServiceImpl implements UserMessageService {
     private UserMessageMapper userMessageMapper;
     @Resource
     private UserFollowMapper userFollowMapper;
+    @Resource
+    private UserMapper userMapper;
 
     private static String preview(String text, int max) {
         if (text == null) {
@@ -45,6 +49,7 @@ public class UserMessageServiceImpl implements UserMessageService {
             return;
         }
         String pv = preview(setName != null ? setName : "题库", 200);
+        String actorName = actorDisplayName(publisherId);
         for (User follower : followers) {
             if (follower == null || follower.getId() == null || follower.getId().equals(publisherId)) {
                 continue;
@@ -52,7 +57,7 @@ public class UserMessageServiceImpl implements UserMessageService {
             UserMessage m = new UserMessage();
             m.setUserId(follower.getId());
             m.setType(TYPE_FOLLOW_PUBLISH_SET);
-            m.setTitle("你关注的用户发布了新题库");
+            m.setTitle("你关注的「" + actorName + "」发布了新题库");
             m.setContentPreview(pv);
             m.setRefQuestionSetId(setId);
             m.setRefPaperId(null);
@@ -73,6 +78,7 @@ public class UserMessageServiceImpl implements UserMessageService {
             return;
         }
         String pv = preview(title != null ? title : "试卷", 200);
+        String actorName = actorDisplayName(ownerId);
         for (User follower : followers) {
             if (follower == null || follower.getId() == null || follower.getId().equals(ownerId)) {
                 continue;
@@ -80,7 +86,7 @@ public class UserMessageServiceImpl implements UserMessageService {
             UserMessage m = new UserMessage();
             m.setUserId(follower.getId());
             m.setType(TYPE_FOLLOW_PUBLISH_PAPER);
-            m.setTitle("你关注的用户发布了新试卷");
+            m.setTitle("你关注的「" + actorName + "」发布了新试卷");
             m.setContentPreview(pv);
             m.setRefQuestionSetId(null);
             m.setRefPaperId(paperId);
@@ -96,10 +102,11 @@ public class UserMessageServiceImpl implements UserMessageService {
         if (recipientUserId == null || setId == null || commentId == null) {
             return;
         }
+        String actorName = actorDisplayName(actorUserId);
         UserMessage m = new UserMessage();
         m.setUserId(recipientUserId);
         m.setType(TYPE_DISCUSSION_COMMENT);
-        m.setTitle("你的公开题库收到新评论");
+        m.setTitle("「" + actorName + "」评论了你的公开题库");
         m.setContentPreview(preview(contentPreview, 240));
         m.setRefQuestionSetId(setId);
         m.setRefPaperId(null);
@@ -155,5 +162,13 @@ public class UserMessageServiceImpl implements UserMessageService {
         map.put("size", size);
         map.put("unreadCount", userMessageMapper.countUnread(userId));
         return map;
+    }
+
+    private String actorDisplayName(Long userId) {
+        if (userId == null) {
+            return "用户";
+        }
+        User user = userMapper.selectById(userId);
+        return UserDisplayNames.of(user);
     }
 }

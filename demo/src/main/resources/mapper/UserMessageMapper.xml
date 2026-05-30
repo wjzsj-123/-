@@ -13,11 +13,14 @@
     </insert>
 
     <select id="selectByUserIdPage" resultType="com.example.demo.demos.web.pojo.UserMessage">
-        SELECT id, user_id, type, title, content_preview,
-               ref_question_set_id, ref_paper_id, ref_comment_id, actor_user_id, read_at, created_at
-        FROM user_message
-        WHERE user_id = #{userId}
-        ORDER BY created_at DESC
+        SELECT m.id, m.user_id, m.type, m.title, m.content_preview,
+               m.ref_question_set_id, m.ref_paper_id, m.ref_comment_id, m.actor_user_id, m.read_at, m.created_at,
+               au.nickname AS actor_nickname,
+               au.username AS actor_username
+        FROM user_message m
+        LEFT JOIN user au ON au.id = m.actor_user_id
+        WHERE m.user_id = #{userId}
+        ORDER BY m.created_at DESC
         LIMIT #{size} OFFSET #{offset}
     </select>
 
@@ -30,11 +33,14 @@
     </select>
 
     <select id="selectLatestUnread" resultType="com.example.demo.demos.web.pojo.UserMessage">
-        SELECT id, user_id, type, title, content_preview,
-               ref_question_set_id, ref_paper_id, ref_comment_id, actor_user_id, read_at, created_at
-        FROM user_message
-        WHERE user_id = #{userId} AND read_at IS NULL
-        ORDER BY created_at DESC
+        SELECT m.id, m.user_id, m.type, m.title, m.content_preview,
+               m.ref_question_set_id, m.ref_paper_id, m.ref_comment_id, m.actor_user_id, m.read_at, m.created_at,
+               au.nickname AS actor_nickname,
+               au.username AS actor_username
+        FROM user_message m
+        LEFT JOIN user au ON au.id = m.actor_user_id
+        WHERE m.user_id = #{userId} AND m.read_at IS NULL
+        ORDER BY m.created_at DESC
         LIMIT #{limit}
     </select>
 

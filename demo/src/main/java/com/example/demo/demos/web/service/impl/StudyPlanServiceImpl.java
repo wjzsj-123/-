@@ -119,6 +119,27 @@ public class StudyPlanServiceImpl implements StudyPlanService {
     }
 
     @Override
+    public StudyPlan getPlanDetail(Long userId, Long planId) {
+        StudyPlan plan = requireUserPlan(userId, planId);
+        return enrichPlan(plan);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deletePlan(Long userId, Long planId) {
+        requireUserPlan(userId, planId);
+        studyPlanRecordMapper.deleteByPlanId(planId);
+        studyPlanMapper.deleteById(planId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void resetPlanProgress(Long userId, Long planId) {
+        requireUserPlan(userId, planId);
+        studyPlanRecordMapper.deleteByPlanId(planId);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void submitQuestionResult(Long userId, Long planId, Long questionId, Boolean correct) {
         if (questionId == null) {

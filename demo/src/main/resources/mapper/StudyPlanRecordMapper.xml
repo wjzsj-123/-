@@ -35,4 +35,8 @@
             update_time = NOW()
         WHERE id = #{id}
     </update>
+
+    <delete id="deleteByPlanId">
+        DELETE FROM study_plan_record WHERE plan_id = #{planId}
+    </delete>
 </mapper>
