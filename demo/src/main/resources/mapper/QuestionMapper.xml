@@ -150,12 +150,9 @@
     <!-- 统计题库内不同类型题目数量-->
     <select id="countByQuestionSetIdAndType" resultType="com.example.demo.demos.web.dto.QuestionCountDTO">
         SELECT
-            -- 直接使用1匹配选择题类型
-            SUM(CASE WHEN type = 1 THEN 1 ELSE 0 END) as choiceCount,
-            -- 直接使用2匹配填空题类型
-            SUM(CASE WHEN type = 2 THEN 1 ELSE 0 END) as fillCount,
-            -- 直接使用3匹配多选题类型
-            SUM(CASE WHEN type = 3 THEN 1 ELSE 0 END) as multiCount
+            COALESCE(SUM(CASE WHEN type = 1 THEN 1 ELSE 0 END), 0) AS choiceCount,
+            COALESCE(SUM(CASE WHEN type = 2 THEN 1 ELSE 0 END), 0) AS fillCount,
+            COALESCE(SUM(CASE WHEN type = 3 THEN 1 ELSE 0 END), 0) AS multiCount
         FROM question
         WHERE question_set_id = #{setId}
     </select>

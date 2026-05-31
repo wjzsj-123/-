@@ -32,6 +32,35 @@ public class QuestionSetController {
     @Resource
     private QuestionMapper questionMapper;
 
+    /** 为题库列表填充各题型数量（空题库时 count 查询可能无结果，需防空） */
+    private void enrichTypeCounts(List<QuestionSet> questionSets) {
+        if (questionSets == null || questionSets.isEmpty()) {
+            return;
+        }
+        for (QuestionSet set : questionSets) {
+            if (set == null || set.getId() == null) {
+                continue;
+            }
+            QuestionCountDTO countDTO = questionMapper.countByQuestionSetIdAndType(set.getId());
+            if (countDTO == null) {
+                set.setChoiceCount(0);
+                set.setFillCount(0);
+                set.setMultiCount(0);
+            } else {
+                set.setChoiceCount(countDTO.getChoiceCount() != null ? countDTO.getChoiceCount() : 0);
+                set.setFillCount(countDTO.getFillCount() != null ? countDTO.getFillCount() : 0);
+                set.setMultiCount(countDTO.getMultiCount() != null ? countDTO.getMultiCount() : 0);
+            }
+        }
+    }
+
+    private static String exceptionMessage(Exception e) {
+        if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+            return e.getMessage();
+        }
+        return e.getClass().getSimpleName();
+    }
+
     /**
      * 创建题目集
      */
@@ -127,19 +156,12 @@ public class QuestionSetController {
         try {
             //System.out.println(userId + "正在查询题库列表");
             List<QuestionSet> questionSets = questionSetService.getQuestionSetsByUserId(userId);
-            // 为每个题库添加题型数量
-            for (QuestionSet set : questionSets) {
-                QuestionCountDTO countDTO = questionMapper.countByQuestionSetIdAndType(set.getId());
-                set.setChoiceCount(countDTO.getChoiceCount());
-                set.setMultiCount(countDTO.getMultiCount());
-                set.setFillCount(countDTO.getFillCount());
-                //System.out.println("题库 : " + set.getId() + " : " + set.getChoiceCount() + " : " + set.getMultiCount() + " : " + set.getFillCount());
-            }
+            enrichTypeCounts(questionSets);
             return Result.success("查询成功", questionSets);
         } catch (IllegalArgumentException e) {
             return Result.error(e.getMessage());
         } catch (Exception e) {
-            return Result.error("查询异常：" + e.getMessage());
+            return Result.error("查询异常：" + exceptionMessage(e));
         }
     }
 
@@ -211,17 +233,12 @@ public class QuestionSetController {
             @RequestParam(required = false) String name) {
         try {
             List<QuestionSet> questionSets = questionSetService.filterQuestionSets(userId, category, name);
-            for (QuestionSet set : questionSets) {
-                QuestionCountDTO countDTO = questionMapper.countByQuestionSetIdAndType(set.getId());
-                set.setChoiceCount(countDTO.getChoiceCount());
-                set.setMultiCount(countDTO.getMultiCount());
-                set.setFillCount(countDTO.getFillCount());
-            }
+            enrichTypeCounts(questionSets);
             return Result.success("查询成功", questionSets);
         } catch (IllegalArgumentException e) {
             return Result.error(e.getMessage());
         } catch (Exception e) {
-            return Result.error("查询异常：" + e.getMessage());
+            return Result.error("查询异常：" + exceptionMessage(e));
         }
     }
 
