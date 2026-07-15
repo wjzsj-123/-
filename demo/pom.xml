@@ -12,6 +12,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <spring-boot.version>2.6.13</spring-boot.version>
+        <jacoco.destFile>${java.io.tmpdir}/lp-demo-jacoco.exec</jacoco.destFile>
     </properties>
     <dependencies>
         <dependency>
@@ -120,6 +121,17 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>ci-jacoco</id>
+            <activation>
+                <property>
+                    <name>env.CI</name>
+                </property>
+            </activation>
+            <properties>
+                <jacoco.destFile>${project.build.directory}/jacoco.exec</jacoco.destFile>
+            </properties>
+        </profile>
     </profiles>
 
     <build>
@@ -164,8 +176,8 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.11</version>
                 <configuration>
-                    <destFile>${java.io.tmpdir}/lp-demo-jacoco.exec</destFile>
-                    <dataFile>${java.io.tmpdir}/lp-demo-jacoco.exec</dataFile>
+                    <destFile>${jacoco.destFile}</destFile>
+                    <dataFile>${jacoco.destFile}</dataFile>
                 </configuration>
                 <executions>
                     <execution>
