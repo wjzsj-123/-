@@ -186,6 +186,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { displayUserName } from '@/utils/userDisplay';
+import request from '@/utils/request';
 
 // 统计数据变量
 const questionSetCount = ref(0);
@@ -242,8 +243,7 @@ const getCurrentUser = () => {
 // 获取题库列表
 const fetchQuestionSets = async (userId) => {
   try {
-    const response = await fetch(`/api/question-set/user/${userId}`);
-    const result = await response.json();
+    const result = await request.get(`/api/question-set/user/${userId}`);
     if (result.code === 0) {
       questionSets.value = result.data;
     }
@@ -255,8 +255,7 @@ const fetchQuestionSets = async (userId) => {
 // 获取题库数量
 const fetchQuestionSetCount = async (userId) => {
   try {
-    const response = await fetch(`/api/question-set/count?userId=${userId}`);
-    const result = await response.json();
+    const result = await request.get(`/api/question-set/count?userId=${userId}`);
     if (result.code === 0) {
       questionSetCount.value = result.data;
     }
@@ -268,8 +267,7 @@ const fetchQuestionSetCount = async (userId) => {
 // 获取试卷数量
 const fetchPaperCount = async (userId) => {
   try {
-    const response = await fetch(`/api/paper/count?userId=${userId}`);
-    const result = await response.json();
+    const result = await request.get(`/api/paper/count?userId=${userId}`);
     if (result.code === 0) {
       paperCount.value = result.data;
     }
@@ -281,8 +279,7 @@ const fetchPaperCount = async (userId) => {
 // 获取题目总数
 const fetchQuestionCount = async (userId) => {
   try {
-    const response = await fetch(`/api/question/count?userId=${userId}`);
-    const result = await response.json();
+    const result = await request.get(`/api/question/count?userId=${userId}`);
     if (result.code === 0) {
       questionCount.value = result.data;
     }
@@ -307,8 +304,7 @@ const generateDailyQuestion = async () => {
   try {
     const userId = userInfo.value.id;
     // 请求随机题目接口
-    const response = await fetch(`/api/question/random?questionSetId=${selectedQuestionSetId.value}&limit=1`);
-    const result = await response.json();
+    const result = await request.get(`/api/question/random?questionSetId=${selectedQuestionSetId.value}&limit=1`);
     // console.log(result);
 
     if (result.code === 0 && result.data && result.data.length > 0) {
@@ -317,8 +313,7 @@ const generateDailyQuestion = async () => {
 
       // 如果是单选题/多选题，获取选项列表
       if (question.type === 1 || question.type === 3) {
-        const optionRes = await fetch(`/api/question-option/question/${question.id}`);
-        const optionResult = await optionRes.json();
+        const optionResult = await request.get(`/api/question-option/question/${question.id}`);
         if (optionResult.code === 0) {
           question.options = optionResult.data;
         }
@@ -326,8 +321,7 @@ const generateDailyQuestion = async () => {
 
       // 如果是填空题，获取正确答案
       if (question.type === 2) {
-        const answerRes = await fetch(`/api/fill-answer/question/${question.id}/sort/1`);
-        const answerResult = await answerRes.json();
+        const answerResult = await request.get(`/api/fill-answer/question/${question.id}/sort/1`);
         if (answerResult.code === 0) {
           // 兼容：如果答案也是数组，同样取第一个
           question.correctAnswer = Array.isArray(answerResult.data)

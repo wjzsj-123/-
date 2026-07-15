@@ -94,9 +94,12 @@
 import { ref, onMounted, watchEffect, computed, watch, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { displayUserName } from '@/utils/userDisplay';
+import request from '@/utils/request';
+import { useUserStore } from '@/stores/user';
 
 const router = useRouter();
 const route = useRoute();
+const userStore = useUserStore();
 const userInfo = ref({});
 
 const unreadCount = ref(0);
@@ -114,8 +117,7 @@ const fetchUnreadCount = async () => {
   const id = userInfo.value?.id;
   if (!id) return;
   try {
-    const r = await fetch('/api/messages/unread-count');
-    const j = await r.json();
+    const j = await request.get('/api/messages/unread-count');
     if (j.code === 0) {
       unreadCount.value = Number(j.data) || 0;
     }
@@ -128,8 +130,7 @@ const fetchPreview = async () => {
   const id = userInfo.value?.id;
   if (!id) return;
   try {
-    const r = await fetch('/api/messages/preview');
-    const j = await r.json();
+    const j = await request.get('/api/messages/preview');
     previewItems.value = j.code === 0 ? (j.data || []) : [];
   } catch {
     previewItems.value = [];
@@ -164,8 +165,7 @@ const markPreviewRead = async (m) => {
   const id = userInfo.value?.id;
   if (!id) return;
   try {
-    const res = await fetch(`/api/messages/${m.id}/read`, { method: 'POST' });
-    const j = await res.json();
+    const j = await request.post(`/api/messages/${m.id}/read`);
     if (j.code === 0) {
       m.readAt = new Date().toISOString();
       await fetchUnreadCount();
@@ -228,12 +228,11 @@ watch(
 // 退出登录
 const handleLogout = async () => {
   try {
-    await fetch('/api/user/logout', { method: 'POST' });
+    await request.post('/api/user/logout');
   } catch {
     /* ignore */
   }
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('userInfo');
+  userStore.clearLogin();
   router.push('/login');
 };
 </script>

@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 import Login from '@/views/Login.vue'
 import Register from '@/views/Register.vue'
 import Home from '@/views/Home.vue'
@@ -113,9 +114,8 @@ const router = createRouter({
 
 // 全局路由守卫（所有 /home 下页面需登录）
 router.beforeEach((to, from, next) => {
-    const token = localStorage.getItem('accessToken');
-    const userInfo = localStorage.getItem('userInfo');
-    const authed = token && userInfo;
+    const userStore = useUserStore();
+    const authed = userStore.isLoggedIn && !!userStore.userInfo;
     if (to.path.startsWith('/home')) {
         authed ? next() : next('/login');
     } else if ((to.path === '/login' || to.path === '/register') && authed) {

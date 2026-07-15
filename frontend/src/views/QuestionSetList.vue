@@ -121,6 +121,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import request from '@/utils/request';
 
 const router = useRouter();
 const questionSets = ref([]);
@@ -216,11 +217,7 @@ const fetchQuestionSets = async () => {
     const url = `/api/question-set/user/${userInfo.id}/filter?${params.toString()}`;
 
     // 4. 发送请求
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP错误，状态码: ${response.status}`);
-    }
-    const result = await response.json();
+    const result = await request.get(url);
 
     // 5. 处理响应
     if (result.code === 0) {
@@ -262,8 +259,7 @@ const handleAdd = () => {
 const handleEdit = async (set) => {
   try {
     // 获取题库详情
-    const response = await fetch(`/api/question-set/${set.id}`);
-    const result = await response.json();
+    const result = await request.get(`/api/question-set/${set.id}`);
 
     if (result.code === 0) {
       // 填充编辑表单
@@ -295,20 +291,12 @@ const handleSaveEdit = async () => {
   }
 
   try {
-    const response = await fetch(`/api/question-set/${editForm.value.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        id: editForm.value.id,
-        name: editForm.value.name,
-        category: editForm.value.category,
-        description: editForm.value.description
-      })
+    const result = await request.put(`/api/question-set/${editForm.value.id}`, {
+      id: editForm.value.id,
+      name: editForm.value.name,
+      category: editForm.value.category,
+      description: editForm.value.description
     });
-
-    const result = await response.json();
     if (result.code === 0) {
       showEditModal.value = false;
       fetchQuestionSets(); // 重新加载列表
@@ -326,10 +314,7 @@ const handleSaveEdit = async () => {
 const handleDelete = async (id) => {
   if (confirm('确定要删除该题库吗？删除后不可恢复！')) {
     try {
-      const response = await fetch(`/api/question-set/${id}`, {
-        method: 'DELETE'
-      });
-      const result = await response.json();
+      const result = await request.delete(`/api/question-set/${id}`);
 
       if (result.code === 0) {
         alert('删除成功');

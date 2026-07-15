@@ -60,6 +60,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import request from '@/utils/request'
 
 // 获取路由实例
 const router = useRouter()
@@ -97,16 +98,11 @@ const handleRegister = async () => {
   }
 
   try {
-    const response = await fetch('/api/user/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...form.value,
-        username: username, // 使用处理后的用户名
-        password: password  // 使用处理后的密码
-      })
+    const result = await request.post('/api/user/register', {
+      ...form.value,
+      username: username,
+      password: password
     })
-    const result = await response.json()
 
     if (result.code === 0) {
       // 注册成功，跳转到登录页

@@ -3,10 +3,12 @@ package com.example.demo.demos.web.controller;
 import com.example.demo.demos.web.common.Result;
 import com.example.demo.demos.web.pojo.QuestionOption;
 import com.example.demo.demos.web.service.QuestionOptionService;
+import io.swagger.annotations.Api;
 import org.springframework.web.bind.annotation.*;
 import javax.annotation.Resource;
 import java.util.List;
 
+@Api(tags = "题目选项")
 @RestController
 @RequestMapping("/api/question-option")
 public class QuestionOptionController {

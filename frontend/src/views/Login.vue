@@ -36,9 +36,12 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router' // 导入路由钩子
+import request from '@/utils/request'
+import { useUserStore } from '@/stores/user'
 
 // 获取路由实例
 const router = useRouter()
+const userStore = useUserStore()
 
 // 表单数据
 const form = ref({
@@ -57,22 +60,14 @@ const goToRegister = () => {
 // 登录处理
 const handleLogin = async () => {
   try {
-    const response = await fetch('/api/user/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form.value)
-    })
-    const result = await response.json()
+    const result = await request.post('/api/user/login', form.value)
 
     if (result.code === 0) {
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('userInfo')
       const data = result.data || {}
       if (data.token) {
-        localStorage.setItem('accessToken', data.token)
-        localStorage.setItem('userInfo', JSON.stringify(data.user || {}))
+        userStore.setLogin({ token: data.token, user: data.user || {} })
       } else {
-        localStorage.setItem('userInfo', JSON.stringify(data))
+        userStore.setLogin({ token: '', user: data })
       }
       await router.push('/home')
     } else {

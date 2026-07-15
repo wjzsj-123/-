@@ -44,6 +44,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import request from '@/utils/request';
 
 const router = useRouter();
 const route = useRoute();
@@ -75,8 +76,7 @@ const form = ref({
 // 获取题库详情（编辑时）
 const fetchQuestionSetDetail = async () => {
   try {
-    const response = await fetch(`/api/question-set/${route.params.id}`);
-    const result = await response.json();
+    const result = await request.get(`/api/question-set/${route.params.id}`);
 
     if (result.code === 0) {
       form.value = result.data;
@@ -97,21 +97,9 @@ const handleSubmit = async () => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     const submitData = { ...form.value, userId: userInfo.id };
 
-    let url = '/api/question-set';
-    let method = 'POST';
-
-    // 编辑模式
-    if (isEdit.value) {
-      method = 'PUT';
-    }
-
-    const response = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(submitData)
-    });
-
-    const result = await response.json();
+    const result = isEdit.value
+      ? await request.put('/api/question-set', submitData)
+      : await request.post('/api/question-set', submitData);
 
     if (result.code === 0) {
       alert(isEdit.value ? '更新成功' : '创建成功');

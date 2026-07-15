@@ -98,6 +98,7 @@ import { onMounted, ref, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { displayUserName } from '@/utils/userDisplay'
+import request from '@/utils/request'
 
 const route = useRoute()
 const router = useRouter()
@@ -126,8 +127,7 @@ const getCurrentUserId = () => {
 
 const loadQuestionSet = async () => {
   try {
-    const response = await fetch(`/api/question-set/${setId}`)
-    const result = await response.json()
+    const result = await request.get(`/api/question-set/${setId}`)
     if (result.code === 0) {
       questionSet.value = result.data || {}
       if (questionSet.value.isPublic !== 1) {
@@ -159,8 +159,7 @@ const loadComments = async () => {
     if (currentUserId.value) {
       params.append('currentUserId', currentUserId.value)
     }
-    const response = await fetch(`/api/question-set/public/${setId}/comments?${params.toString()}`)
-    const result = await response.json()
+    const result = await request.get(`/api/question-set/public/${setId}/comments?${params.toString()}`)
     if (result.code === 0) {
       comments.value = result.data?.list || []
       total.value = result.data?.total || 0
@@ -207,15 +206,10 @@ const submitComment = async () => {
     return
   }
   try {
-    const response = await fetch(`/api/question-set/public/${setId}/comments`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sentiment: Number(newComment.value.sentiment),
-        content: newComment.value.content.trim()
-      })
+    const result = await request.post(`/api/question-set/public/${setId}/comments`, {
+      sentiment: Number(newComment.value.sentiment),
+      content: newComment.value.content.trim()
     })
-    const result = await response.json()
     if (result.code === 0) {
       ElMessage.success('评论发布成功')
       newComment.value.content = ''
@@ -236,10 +230,7 @@ const toggleLike = async (item) => {
     return
   }
   try {
-    const response = await fetch(`/api/question-set/public/${setId}/comments/${item.id}/like`, {
-      method: 'POST'
-    })
-    const result = await response.json()
+    const result = await request.post(`/api/question-set/public/${setId}/comments/${item.id}/like`)
     if (result.code === 0) {
       await loadComments()
     } else {
@@ -266,10 +257,7 @@ const deleteComment = async (item) => {
     return
   }
   try {
-    const response = await fetch(`/api/question-set/public/${setId}/comments/${item.id}`, {
-      method: 'DELETE'
-    })
-    const result = await response.json()
+    const result = await request.delete(`/api/question-set/public/${setId}/comments/${item.id}`)
     if (result.code === 0) {
       ElMessage.success('评论删除成功')
       if (comments.value.length === 1 && page.value > 1) {

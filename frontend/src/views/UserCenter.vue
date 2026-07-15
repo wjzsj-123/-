@@ -94,6 +94,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { displayUserName, hasNickname } from '@/utils/userDisplay'
+import request from '@/utils/request'
 
 const route = useRoute()
 const loading = ref(true)
@@ -136,8 +137,7 @@ const loadCenter = async () => {
   try {
     const q = new URLSearchParams()
     if (currentUserId.value) q.append('viewerId', String(currentUserId.value))
-    const res = await fetch(`/api/user-center/${userId}?${q.toString()}`)
-    const json = await res.json()
+    const json = await request.get(`/api/user-center/${userId}?${q.toString()}`)
     if (json.code === 0) {
       center.value = json.data
     } else {
@@ -156,11 +156,9 @@ const doFollow = async () => {
   if (!currentUserId.value || !center.value) return
   followBusy.value = true
   try {
-    const res = await fetch(
-      `/api/user-center/follow?followerId=${currentUserId.value}&followeeId=${center.value.id}`,
-      { method: 'POST' }
+    const json = await request.post(
+      `/api/user-center/follow?followerId=${currentUserId.value}&followeeId=${center.value.id}`
     )
-    const json = await res.json()
     if (json.code === 0) {
       ElMessage.success('已关注')
       await loadCenter()
@@ -178,11 +176,9 @@ const doUnfollow = async () => {
   if (!currentUserId.value || !center.value) return
   followBusy.value = true
   try {
-    const res = await fetch(
-      `/api/user-center/follow?followerId=${currentUserId.value}&followeeId=${center.value.id}`,
-      { method: 'DELETE' }
+    const json = await request.delete(
+      `/api/user-center/follow?followerId=${currentUserId.value}&followeeId=${center.value.id}`
     )
-    const json = await res.json()
     if (json.code === 0) {
       ElMessage.success('已取消关注')
       await loadCenter()
@@ -204,8 +200,7 @@ const openFollowing = async () => {
   listModal.loading = true
   listModal.users = []
   try {
-    const res = await fetch(`/api/user-center/${uid}/following`)
-    const json = await res.json()
+    const json = await request.get(`/api/user-center/${uid}/following`)
     listModal.users = json.code === 0 ? json.data || [] : []
   } finally {
     listModal.loading = false
@@ -220,8 +215,7 @@ const openFollowers = async () => {
   listModal.loading = true
   listModal.users = []
   try {
-    const res = await fetch(`/api/user-center/${uid}/followers`)
-    const json = await res.json()
+    const json = await request.get(`/api/user-center/${uid}/followers`)
     listModal.users = json.code === 0 ? json.data || [] : []
   } finally {
     listModal.loading = false

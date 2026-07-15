@@ -10,6 +10,7 @@ import com.example.demo.demos.web.mapper.QuestionMapper;
 import com.example.demo.demos.web.pojo.QuestionSet;
 import com.example.demo.demos.web.service.QuestionService;
 import com.example.demo.demos.web.service.QuestionSetService;
+import io.swagger.annotations.Api;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -21,6 +22,7 @@ import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 
+@Api(tags = "题库管理")
 @RestController
 @RequestMapping("/api/question-set")
 public class QuestionSetController {

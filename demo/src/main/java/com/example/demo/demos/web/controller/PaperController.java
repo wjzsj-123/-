@@ -8,6 +8,7 @@ import com.example.demo.demos.web.pojo.PaperResult;
 import com.example.demo.demos.web.pojo.UserAnswer;
 import com.example.demo.demos.web.service.PaperGenerateService;
 import com.example.demo.demos.web.service.PaperService;
+import io.swagger.annotations.Api;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -16,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Api(tags = "试卷管理")
 @RestController
 @RequestMapping("/api/paper")
 public class PaperController {

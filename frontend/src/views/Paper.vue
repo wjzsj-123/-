@@ -71,6 +71,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import request from '@/utils/request';
 
 // 路由实例
 const router = useRouter();
@@ -106,8 +107,7 @@ const fetchUserPapers = async () => {
   }
 
   try {
-    const response = await fetch(`/api/paper/user/${user.id}`);
-    const result = await response.json();
+    const result = await request.get(`/api/paper/user/${user.id}`);
 
     if (result.code === 0) {
       // 假设后端返回的数据包含 isAnswered（是否作答）和 lastAnswerTime（最后作答时间）
@@ -143,10 +143,7 @@ const handleDelete = async (paperId) => {
   }
 
   try {
-    const response = await fetch(`/api/paper/${paperId}`, {
-      method: 'DELETE'
-    });
-    const result = await response.json();
+    const result = await request.delete(`/api/paper/${paperId}`);
 
     if (result.code === 0) {
       alert('删除成功');
@@ -166,10 +163,7 @@ const togglePublicStatus = async (paper) => {
   if (!user || !user.id) return;
   try {
     const nextStatus = !paper.isShared;
-    const response = await fetch(`/api/paper/${paper.id}/public-status?userId=${user.id}&isPublic=${nextStatus}`, {
-      method: 'PUT'
-    });
-    const result = await response.json();
+    const result = await request.put(`/api/paper/${paper.id}/public-status?userId=${user.id}&isPublic=${nextStatus}`);
     if (result.code === 0) {
       alert(nextStatus ? '已设为公有' : '已设为私有');
       fetchUserPapers();
@@ -186,10 +180,7 @@ const handleRetry = async (paperId) => {
   const user = getUserInfo();
   if (!user || !user.id) return;
   try {
-    const response = await fetch(`/api/paper/${paperId}/retry?userId=${user.id}`, {
-      method: 'POST'
-    });
-    const result = await response.json();
+    const result = await request.post(`/api/paper/${paperId}/retry?userId=${user.id}`);
     if (result.code === 0) {
       alert('已重置，可重新作答');
       fetchUserPapers();

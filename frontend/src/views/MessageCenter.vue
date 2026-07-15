@@ -61,6 +61,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { displayUserName } from '@/utils/userDisplay'
+import request from '@/utils/request'
 
 const router = useRouter()
 const loading = ref(true)
@@ -99,8 +100,7 @@ const load = async () => {
   }
   loading.value = true
   try {
-    const res = await fetch(`/api/messages?userId=${uid}&page=${page.value}&size=${size.value}`)
-    const json = await res.json()
+    const json = await request.get(`/api/messages?userId=${uid}&page=${page.value}&size=${size.value}`)
     if (json.code === 0) {
       items.value = json.data?.list || []
       total.value = json.data?.total || 0
@@ -119,8 +119,7 @@ const markRead = async (m) => {
   const uid = userId()
   if (!uid) return
   try {
-    const res = await fetch(`/api/messages/${m.id}/read?userId=${uid}`, { method: 'POST' })
-    const json = await res.json()
+    const json = await request.post(`/api/messages/${m.id}/read?userId=${uid}`)
     if (json.code === 0) {
       m.readAt = new Date().toISOString()
     }
@@ -133,8 +132,7 @@ const oneClickImportSet = async (m) => {
   const uid = userId()
   if (!uid) return
   try {
-    const res = await fetch(`/api/question-set/public/import/${m.refQuestionSetId}`, { method: 'POST' })
-    const json = await res.json()
+    const json = await request.post(`/api/question-set/public/import/${m.refQuestionSetId}`)
     if (json.code === 0) {
       ElMessage.success('已复制到你的题库')
     } else {
@@ -149,8 +147,7 @@ const oneClickCopyPaper = async (m) => {
   const uid = userId()
   if (!uid) return
   try {
-    const res = await fetch(`/api/paper/${m.refPaperId}/copy?userId=${uid}`, { method: 'POST' })
-    const json = await res.json()
+    const json = await request.post(`/api/paper/${m.refPaperId}/copy?userId=${uid}`)
     if (json.code === 0) {
       ElMessage.success('已复制到我的试卷')
     } else {

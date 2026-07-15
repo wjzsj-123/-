@@ -28,6 +28,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import request from '@/utils/request'
 
 const router = useRouter()
 const loading = ref(true)
@@ -69,8 +70,7 @@ onMounted(async () => {
   }
 
   try {
-    const response = await fetch(`/api/user/${userInfo.id}`)
-    const result = await response.json()
+    const result = await request.get(`/api/user/${userInfo.id}`)
     if (result.code === 0 && result.data) {
       applyProfile(result.data)
       syncLocalUserInfo(result.data)
@@ -98,17 +98,12 @@ const saveProfile = async () => {
   errorMsg.value = ''
 
   try {
-    const response = await fetch('/api/user', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: profile.value.id,
-        username: profile.value.username,
-        nickname: profile.value.nickname.trim(),
-        email: profile.value.email.trim()
-      })
+    const result = await request.put('/api/user', {
+      id: profile.value.id,
+      username: profile.value.username,
+      nickname: profile.value.nickname.trim(),
+      email: profile.value.email.trim()
     })
-    const result = await response.json()
 
     if (result.code === 0) {
       const updatedUser = {

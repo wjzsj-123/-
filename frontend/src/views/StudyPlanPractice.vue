@@ -78,6 +78,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
+import request from '@/utils/request'
 
 const router = useRouter()
 const route = useRoute()
@@ -106,8 +107,7 @@ const getCurrentUserId = () => {
 const fetchPlanDetail = async () => {
   const userId = getCurrentUserId()
   if (!userId || !planId.value) return null
-  const response = await fetch(`/api/study-plan/${planId.value}?userId=${userId}`)
-  const result = await response.json()
+  const result = await request.get(`/api/study-plan/${planId.value}?userId=${userId}`)
   if (result.code !== 0 || !result.data) return null
   const plan = result.data
   planSummary.value = {
@@ -145,8 +145,7 @@ const loadQuestions = async () => {
     goBack()
     return
   }
-  const response = await fetch(`/api/study-plan/questions?userId=${userId}&planId=${planId.value}`)
-  const result = await response.json()
+  const result = await request.get(`/api/study-plan/questions?userId=${userId}&planId=${planId.value}`)
   if (result.code === 0) {
     questions.value = result.data || []
     currentIndex.value = 0
@@ -170,8 +169,7 @@ const loadWrongQuestions = async () => {
     ElMessage.error('请先登录')
     return
   }
-  const response = await fetch(`/api/study-plan/wrong-questions?userId=${userId}&planId=${planId.value}`)
-  const result = await response.json()
+  const result = await request.get(`/api/study-plan/wrong-questions?userId=${userId}&planId=${planId.value}`)
   if (result.code !== 0) {
     ElMessage.error(result.message || '加载错题失败')
     return
@@ -245,10 +243,7 @@ const submitAnswer = async () => {
     return
   }
   answerCorrect.value = calcCorrect()
-  const response = await fetch(`/api/study-plan/questions/${currentQuestion.value.id}/submit?userId=${uid}&planId=${planId.value}&correct=${answerCorrect.value}`, {
-    method: 'POST'
-  })
-  const result = await response.json()
+  const result = await request.post(`/api/study-plan/questions/${currentQuestion.value.id}/submit?userId=${uid}&planId=${planId.value}&correct=${answerCorrect.value}`)
   if (result.code !== 0) {
     ElMessage.error(result.message || '提交失败')
     return
@@ -287,8 +282,7 @@ const startWrongReview = async () => {
 
 const resetPlanProgress = async () => {
   const userId = getCurrentUserId()
-  const response = await fetch(`/api/study-plan/${planId.value}/reset?userId=${userId}`, { method: 'POST' })
-  const result = await response.json()
+  const result = await request.post(`/api/study-plan/${planId.value}/reset?userId=${userId}`)
   if (result.code !== 0) {
     ElMessage.error(result.message || '重置失败')
     return false
@@ -299,8 +293,7 @@ const resetPlanProgress = async () => {
 
 const deletePlan = async () => {
   const userId = getCurrentUserId()
-  const response = await fetch(`/api/study-plan/${planId.value}?userId=${userId}`, { method: 'DELETE' })
-  const result = await response.json()
+  const result = await request.delete(`/api/study-plan/${planId.value}?userId=${userId}`)
   if (result.code !== 0) {
     ElMessage.error(result.message || '删除失败')
     return false

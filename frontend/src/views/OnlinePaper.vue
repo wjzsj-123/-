@@ -98,6 +98,7 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { displayUserName } from '@/utils/userDisplay'
+import request from '@/utils/request'
 
 const papers = ref([])
 const loading = ref(false)
@@ -131,8 +132,7 @@ const fetchPublicPapers = async () => {
     params.append('page', String(page.value))
     params.append('size', String(size.value))
     if (currentUserId.value) params.append('currentUserId', String(currentUserId.value))
-    const response = await fetch(`/api/paper/public?${params.toString()}`)
-    const result = await response.json()
+    const result = await request.get(`/api/paper/public?${params.toString()}`)
     if (result.code === 0) {
       papers.value = result.data?.list || []
       total.value = result.data?.total || 0
@@ -164,10 +164,7 @@ const copyPaper = async (paperId) => {
     return
   }
   try {
-    const response = await fetch(`/api/paper/${paperId}/copy?userId=${currentUserId.value}`, {
-      method: 'POST'
-    })
-    const result = await response.json()
+    const result = await request.post(`/api/paper/${paperId}/copy?userId=${currentUserId.value}`)
     if (result.code === 0) {
       ElMessage.success('复制成功，已加入我的试卷')
       await fetchPublicPapers()
@@ -234,8 +231,9 @@ const toggleFollowPublisher = async (paper) => {
   const following = !!paper.viewerFollowsPublisher
   try {
     const url = `/api/user-center/follow?followerId=${currentUserId.value}&followeeId=${uid}`
-    const response = await fetch(url, { method: following ? 'DELETE' : 'POST' })
-    const result = await response.json()
+    const result = following
+      ? await request.delete(url)
+      : await request.post(url)
     if (result.code === 0) {
       ElMessage.success(following ? '已取消关注' : '关注成功')
       await fetchPublicPapers()

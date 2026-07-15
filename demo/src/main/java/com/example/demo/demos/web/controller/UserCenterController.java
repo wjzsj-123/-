@@ -4,11 +4,13 @@ import com.example.demo.demos.web.common.Result;
 import com.example.demo.demos.web.pojo.User;
 import com.example.demo.demos.web.pojo.UserCenterDTO;
 import com.example.demo.demos.web.service.UserCenterService;
+import io.swagger.annotations.Api;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.List;
 
+@Api(tags = "用户中心")
 @RestController
 @RequestMapping("/api/user-center")
 public class UserCenterController {

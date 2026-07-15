@@ -61,6 +61,7 @@
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
+import request from '@/utils/request'
 
 const loading = ref(false)
 const plans = ref([])
@@ -78,8 +79,7 @@ const getCurrentUserId = () => {
 
 const loadQuestionSets = async () => {
   const userId = getCurrentUserId()
-  const response = await fetch(`/api/question-set/user/${userId}`)
-  const result = await response.json()
+  const result = await request.get(`/api/question-set/user/${userId}`)
   if (result.code === 0) questionSets.value = result.data || []
 }
 
@@ -87,8 +87,7 @@ const loadPlan = async () => {
   const userId = getCurrentUserId()
   loading.value = true
   try {
-    const response = await fetch(`/api/study-plan?userId=${userId}`)
-    const result = await response.json()
+    const result = await request.get(`/api/study-plan?userId=${userId}`)
     if (result.code === 0) {
       plans.value = result.data || []
     } else {
@@ -109,16 +108,11 @@ const savePlan = async () => {
     ElMessage.warning('每日刷题数量必须大于0')
     return
   }
-  const response = await fetch('/api/study-plan', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      userId,
-      questionSetId: Number(form.value.questionSetId),
-      dailyCount: Number(form.value.dailyCount)
-    })
+  const result = await request.post('/api/study-plan', {
+    userId,
+    questionSetId: Number(form.value.questionSetId),
+    dailyCount: Number(form.value.dailyCount)
   })
-  const result = await response.json()
   if (result.code === 0) {
     ElMessage.success('学习计划保存成功')
     form.value.questionSetId = ''
@@ -138,8 +132,7 @@ const resetPlan = async (item) => {
   if (!confirm(`确定将「${item.questionSet?.name || '该题库'}」的学习进度清零并重新开始吗？`)) {
     return
   }
-  const response = await fetch(`/api/study-plan/${item.id}/reset?userId=${userId}`, { method: 'POST' })
-  const result = await response.json()
+  const result = await request.post(`/api/study-plan/${item.id}/reset?userId=${userId}`)
   if (result.code === 0) {
     ElMessage.success('已重置，可重新学习')
     await loadPlan()
@@ -153,8 +146,7 @@ const deletePlan = async (item) => {
   if (!confirm(`确定删除「${item.questionSet?.name || '该题库'}」的学习计划吗？删除后不可恢复。`)) {
     return
   }
-  const response = await fetch(`/api/study-plan/${item.id}?userId=${userId}`, { method: 'DELETE' })
-  const result = await response.json()
+  const result = await request.delete(`/api/study-plan/${item.id}?userId=${userId}`)
   if (result.code === 0) {
     ElMessage.success('学习计划已删除')
     await loadPlan()

@@ -171,6 +171,7 @@ import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import QuestionForm from "@/views/QuestionForm.vue";
 import { ElMessage } from 'element-plus'; // 导入消息提示
+import request from '@/utils/request';
 
 const uploadHeaders = computed(() => {
   const token = localStorage.getItem('accessToken');
@@ -273,8 +274,7 @@ const handleAddQuestion = () => {
 // 获取题库详情
 const getQuestionSetDetail = async () => {
   try {
-    const response = await fetch(`/api/question-set/${questionSetId.value}`);
-    const result = await response.json();
+    const result = await request.get(`/api/question-set/${questionSetId.value}`);
     if (result.code === 0) {
       questionSet.value = result.data;
       isPublic.value = result.data.isPublic === 1;
@@ -307,15 +307,7 @@ const togglePublicStatus = async () => {
     }
 
     // 3. 调用后端PUT接口（适配后端路径和请求方式）
-    const response = await fetch(`/api/question-set/${questionSetId.value}/public-status`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded', // 适配form-data参数格式
-      },
-      body: params
-    });
-
-    const result = await response.json();
+    const result = await request.put(`/api/question-set/${questionSetId.value}/public-status`, params);
     if (result.code === 0) {
       // 4. 更新前端状态
       isPublic.value = targetStatus;
@@ -336,8 +328,7 @@ const togglePublicStatus = async () => {
 // 获取题目列表后初始化筛选
 const getQuestions = async () => {
   try {
-    const response = await fetch(`/api/question/question-set/${questionSetId.value}`);
-    const result = await response.json();
+    const result = await request.get(`/api/question/question-set/${questionSetId.value}`);
     if (result.code === 0) {
       questions.value = result.data;
       // 初始化筛选
@@ -368,8 +359,7 @@ const getDifficultyText = (difficulty) => {
 const handleEdit = async (question) => {
   try {
     // 1. 先从后端获取最新的题目详情（确保编辑的数据是最新的）
-    const response = await fetch(`/api/question/${question.id}`);
-    const result = await response.json();
+    const result = await request.get(`/api/question/${question.id}`);
 
     if (result.code === 0) {
       // 2. 成功获取后打开编辑表单，并填充数据
@@ -390,8 +380,7 @@ const handleEdit = async (question) => {
 const handleDelete = async (id) => {
   if (confirm('确定要删除这道题目吗？')) {
     try {
-      const response = await fetch(`/api/question/${id}`, { method: 'DELETE' });
-      const result = await response.json();
+      const result = await request.delete(`/api/question/${id}`);
       if (result.code === 0) {
         getQuestions(); // 重新加载题目列表
         ElMessage.success('删除成功');
@@ -409,18 +398,13 @@ const handleDelete = async (id) => {
 const onQuestionSaved = async (questionData) => {
   try {
     // 1. 发送请求到后端新增/编辑题目接口
-    const response = await fetch('/api/question', {
-      method: questionData.id ? 'PUT' : 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        ...questionData,
-        questionSetId: questionSetId.value
-      })
-    });
-
-    const result = await response.json();
+    const payload = {
+      ...questionData,
+      questionSetId: questionSetId.value
+    };
+    const result = questionData.id
+      ? await request.put('/api/question', payload)
+      : await request.post('/api/question', payload);
     if (result.code === 0) {
       // 2. 操作成功后关闭弹窗并刷新列表
       showQuestionForm.value = false;

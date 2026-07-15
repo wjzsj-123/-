@@ -27,6 +27,8 @@ spring:
       cache:
         period: 0
   mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
     view:
       prefix: /
       suffix: .html
@@ -44,6 +46,12 @@ logging:
   level:
     com.example.demo.demos.web.mapper: DEBUG
     org.apache.ibatis: DEBUG
+
+# Knife4j 接口文档
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
 
 # JWT 配置
 jwt:

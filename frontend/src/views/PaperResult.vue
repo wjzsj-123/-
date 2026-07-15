@@ -120,6 +120,7 @@
 // 脚本部分保持不变，无需修改
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import request from '@/utils/request';
 
 // 路由相关
 const route = useRoute();
@@ -169,8 +170,7 @@ onMounted(async () => {
 // 获取试卷基础信息
 const fetchPaperInfo = async () => {
   try {
-    const response = await fetch(`/api/paper/${paperId}`);
-    const result = await response.json();
+    const result = await request.get(`/api/paper/${paperId}`);
     if (result.code === 0) {
       paper.value = result.data || {};
     } else {
@@ -194,14 +194,9 @@ const fetchAnswerResult = async () => {
       throw new Error('未获取到用户信息，请重新登录');
     }
 
-    const response = await fetch(`/api/paper/${paperId}/result?userId=${userId}`);
-    const result = await response.json();
+    const result = await request.get(`/api/paper/${paperId}/result?userId=${userId}`);
 
     console.log("原始返回数据:", result.data);
-
-    if (!response.ok) {
-      throw new Error(`HTTP错误: ${response.status}`);
-    }
 
     if (result.code === 0) {
       const { paper, userAnswers } = result.data;

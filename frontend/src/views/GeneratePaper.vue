@@ -113,6 +113,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import request from '@/utils/request';
 
 // 路由实例
 const router = useRouter();
@@ -163,8 +164,7 @@ onMounted(async () => {
 
   // 2. 获取所有题库列表
   try {
-    const response = await fetch(`/api/question-set/user/${form.value.userId}`);
-    const result = await response.json();
+    const result = await request.get(`/api/question-set/user/${form.value.userId}`);
     console.log(result)
     if (result.code === 0) {
       questionSets.value = result.data || [];
@@ -192,8 +192,7 @@ const handleQuestionSetChange = async (e) => {
 
   // 获取选中题库的题目数量信息（假设后端有此接口）
   try {
-    const response = await fetch(`/api/question-set/${setId}/count`);
-    const result = await response.json();
+    const result = await request.get(`/api/question-set/${setId}/count`);
     if (result.code === 0) {
       console.log(result);
       maxChoiceCount.value = result.data.choiceCount || 0;
@@ -211,8 +210,7 @@ const handleQuestionSetChange = async (e) => {
 const loadQuestions = async () => {
   if (!form.value.questionSetId) return;
   try {
-    const response = await fetch(`/api/question/question-set/${form.value.questionSetId}`);
-    const result = await response.json();
+    const result = await request.get(`/api/question/question-set/${form.value.questionSetId}`);
     if (result.code === 0) {
       questions.value = result.data || [];
       const idSet = new Set(questions.value.map(item => item.id));
@@ -246,17 +244,13 @@ const handleGeneratePaper = async () => {
   loading.value = true;
 
   try {
-    let response;
+    let result;
     if (mode.value === 'custom') {
       const params = new URLSearchParams();
       params.append('userId', form.value.userId);
       params.append('questionSetId', form.value.questionSetId);
       params.append('paperName', form.value.paperName);
-      response = await fetch(`/api/paper/generate-custom?${params.toString()}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(selectedQuestionIds.value)
-      });
+      result = await request.post(`/api/paper/generate-custom?${params.toString()}`, selectedQuestionIds.value);
     } else {
       const params = new URLSearchParams();
       params.append('userId', form.value.userId);
@@ -265,13 +259,8 @@ const handleGeneratePaper = async () => {
       params.append('choiceCount', form.value.choiceCount);
       params.append('fillCount', form.value.fillCount);
       params.append('multiCount', form.value.multiCount);
-      response = await fetch('/api/paper/generate', {
-        method: 'POST',
-        body: params
-      });
+      result = await request.post('/api/paper/generate', params);
     }
-
-    const result = await response.json();
     if (result.code === 0) {
       // 生成成功，跳转到试卷详情页
       alert('试卷生成成功！');

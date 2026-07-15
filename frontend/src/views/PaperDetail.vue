@@ -114,6 +114,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import request from '@/utils/request';
 
 // 获取当前登录用户ID（从localStorage中读取）
 const getUserInfo = () => {
@@ -160,8 +161,7 @@ onMounted(async () => {
 // 获取试卷详情
 const fetchPaperDetail = async () => {
   try {
-    const response = await fetch(`/api/paper/${paperId}`);
-    const result = await response.json();
+    const result = await request.get(`/api/paper/${paperId}`);
     if (result.code === 0) {
       paper.value = result.data;
     } else {
@@ -176,8 +176,7 @@ const fetchPaperDetail = async () => {
 // 获取题目列表（按类型排序）
 const fetchQuestions = async () => {
   try {
-    const response = await fetch(`/api/paper/${paperId}/questions`);
-    const result = await response.json();
+    const result = await request.get(`/api/paper/${paperId}/questions`);
     console.log(result);
     if (result.code === 0) {
       // 后端返回的是包含questions属性的paper对象
@@ -334,13 +333,7 @@ const saveAnswers = async () => {
   if (!answerData) return;
 
   try {
-    const response = await fetch('/api/answer/save', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(answerData) // 直接传递UserAnswer列表
-    });
-
-    const result = await response.json();
+    const result = await request.post('/api/answer/save', answerData);
     if (result.code === 0) {
       alert('答案已保存');
       router.push('/home/paper');
@@ -373,13 +366,7 @@ const submitAnswers = async () => {
   }
 
   try {
-    const response = await fetch('/api/answer/submit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userAnswersList) // 直接传递List<UserAnswer>格式
-    });
-
-    const result = await response.json();
+    const result = await request.post('/api/answer/submit', userAnswersList);
     if (result.code === 0) {
       alert('提交成功！即将跳转到成绩页面');
       router.push(`/home/paper/result/${paperId}`);
@@ -397,9 +384,7 @@ const loadSavedAnswers = async () => {
   if (!userId.value) return;
 
   try {// 后端需提供查询用户试卷临时答案的接口
-    const response = await fetch(`/api/answer/user/${userId.value}/paper/${paperId}/temp`);
-
-    const result = await response.json();
+    const result = await request.get(`/api/answer/user/${userId.value}/paper/${paperId}/temp`);
     if (result.code === 0 && result.data && result.data.length > 0) {
       const savedAnswers = result.data;
 

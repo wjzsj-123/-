@@ -8,12 +8,15 @@ import com.example.demo.demos.web.dto.LoginResponse;
 import com.example.demo.demos.web.pojo.User;
 import com.example.demo.demos.web.redis.LoginRateLimitService;
 import com.example.demo.demos.web.service.UserService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
+@Api(tags = "用户与认证")
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
@@ -132,7 +135,7 @@ public class UserController {
         }
     }
 
-    // 注册接口
+    @ApiOperation("用户注册")
     @PostMapping("/register")
     public Result register(@RequestBody User user) {
         if (user.getUsername() == null || user.getUsername().trim().isEmpty()) {
@@ -148,7 +151,7 @@ public class UserController {
         return count > 0 ? Result.success("注册成功") : Result.error("注册失败");
     }
 
-    // 登录接口
+    @ApiOperation("用户登录")
     @PostMapping("/login")
     public Result login(@RequestBody User user, HttpServletRequest request) {
         String clientIp = resolveClientIp(request);
@@ -175,6 +178,7 @@ public class UserController {
         return Result.success("登录成功", loginResponse);
     }
 
+    @ApiOperation("退出登录")
     @PostMapping("/logout")
     public Result logout(HttpServletRequest request) {
         Long userId = AuthContext.getUserId(request);

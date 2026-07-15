@@ -4,11 +4,13 @@ import com.example.demo.demos.web.common.Result;
 import com.example.demo.demos.web.pojo.Question;
 import com.example.demo.demos.web.pojo.StudyPlan;
 import com.example.demo.demos.web.service.StudyPlanService;
+import io.swagger.annotations.Api;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.List;
 
+@Api(tags = "学习计划")
 @RestController
 @RequestMapping("/api/study-plan")
 public class StudyPlanController {

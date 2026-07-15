@@ -4,6 +4,7 @@ import com.example.demo.demos.web.auth.AuthContext;
 import com.example.demo.demos.web.common.Result;
 import com.example.demo.demos.web.pojo.QuestionSetComment;
 import com.example.demo.demos.web.service.QuestionSetCommentService;
+import io.swagger.annotations.Api;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -11,6 +12,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
+@Api(tags = "公共题库讨论")
 @RestController
 @RequestMapping("/api/question-set/public")
 public class QuestionSetCommentController {

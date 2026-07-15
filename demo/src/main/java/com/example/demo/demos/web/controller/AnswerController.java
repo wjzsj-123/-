@@ -5,11 +5,13 @@ import com.example.demo.demos.web.pojo.PaperAnswerSubmit;
 import com.example.demo.demos.web.pojo.QuestionAnswer;
 import com.example.demo.demos.web.pojo.UserAnswer;
 import com.example.demo.demos.web.service.AnswerService;
+import io.swagger.annotations.Api;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.List;
 
+@Api(tags = "答题记录")
 @RestController
 @RequestMapping("/api/answer")
 public class AnswerController {

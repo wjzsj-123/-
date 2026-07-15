@@ -3,11 +3,13 @@ package com.example.demo.demos.web.controller;
 import com.example.demo.demos.web.common.Result;
 import com.example.demo.demos.web.pojo.Question;
 import com.example.demo.demos.web.service.QuestionService;
+import io.swagger.annotations.Api;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import java.util.List;
 
+@Api(tags = "题目管理")
 @RestController
 @RequestMapping("/api/question")
 public class QuestionController {

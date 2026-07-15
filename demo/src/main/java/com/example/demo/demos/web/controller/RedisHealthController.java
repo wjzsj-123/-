@@ -1,6 +1,7 @@
 package com.example.demo.demos.web.controller;
 
 import com.example.demo.demos.web.common.Result;
+import io.swagger.annotations.Api;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+@Api(tags = "健康检查")
 @RestController
 @RequestMapping("/api/health")
 public class RedisHealthController {

@@ -137,6 +137,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus' // 如需使用element-ui提示，需先安装：npm i element-plus
 import { useRouter } from 'vue-router'
 import { displayUserName } from '@/utils/userDisplay'
+import request from '@/utils/request'
 
 const router = useRouter()
 
@@ -199,11 +200,7 @@ const getPublicQuestionSets = async () => {
     params.append('size', String(size.value))
     if (currentUserId.value) params.append('currentUserId', currentUserId.value)
 
-    const response = await fetch(`/api/question-set/public?${params.toString()}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
-    })
-    const result = await response.json()
+    const result = await request.get(`/api/question-set/public?${params.toString()}`)
 
     if (result.code === 0) {
       bankList.value = result.data?.list || []
@@ -248,11 +245,7 @@ const importBank = async (publicSetId) => {
   }
 
   try {
-    const response = await fetch(`/api/question-set/public/import/${publicSetId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    })
-    const result = await response.json()
+    const result = await request.post(`/api/question-set/public/import/${publicSetId}`)
 
     if (result.code === 0) {
       ElMessage.success('导入成功，已添加到我的题库')
@@ -283,8 +276,9 @@ const toggleFollowPublisher = async (bank) => {
   const following = !!bank.viewerFollowsPublisher
   try {
     const url = `/api/user-center/follow?followerId=${currentUserId.value}&followeeId=${pid}`
-    const response = await fetch(url, { method: following ? 'DELETE' : 'POST' })
-    const result = await response.json()
+    const result = following
+      ? await request.delete(url)
+      : await request.post(url)
     if (result.code === 0) {
       ElMessage.success(following ? '已取消关注' : '关注成功')
       await getPublicQuestionSets()
@@ -302,10 +296,7 @@ const voteBank = async (bank, voteType) => {
     return
   }
   try {
-    const response = await fetch(`/api/question-set/public/${bank.id}/vote?voteType=${voteType}`, {
-      method: 'POST'
-    })
-    const result = await response.json()
+    const result = await request.post(`/api/question-set/public/${bank.id}/vote?voteType=${voteType}`)
     if (result.code === 0) {
       await getPublicQuestionSets()
     } else {
