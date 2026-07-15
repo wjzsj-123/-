@@ -1,0 +1,10 @@
+.git
+.idea
+.vscode
+**/.idea
+**/node_modules
+demo/target
+Redis-8.6.3-Windows-x64-msys2-with-Service
+docs
+*.md
+.env
