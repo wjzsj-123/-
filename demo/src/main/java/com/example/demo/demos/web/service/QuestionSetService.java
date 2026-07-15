@@ -51,7 +51,7 @@ public interface QuestionSetService {
     List<QuestionExcelDTO> exportQuestionSet(Long setId);
 
     // 导入Excel到题库
-    int importQuestionSet(Long setId, InputStream inputStream);
+    int importQuestionSet(Long setId, Long userId, InputStream inputStream);
 
     /**
      * 发布题库为公共题库

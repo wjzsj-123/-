@@ -31,6 +31,12 @@
         WHERE id = #{id}
     </update>
 
+    <update id="updatePassword">
+        UPDATE user
+        SET password = #{password}, update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
     <!-- 根据ID查询 -->
     <select id="selectById" resultType="com.example.demo.demos.web.pojo.User">
         SELECT <include refid="BaseColumnList"/> FROM user WHERE id = #{id}

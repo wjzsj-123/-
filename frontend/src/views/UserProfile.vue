@@ -2,7 +2,8 @@
   <div class="profile-container">
     <h3>个人信息页面</h3>
     <div class="profile-content">
-      <form class="profile-form">
+      <div v-if="loading" class="state">加载中…</div>
+      <form v-else class="profile-form">
         <div class="form-group">
           <label for="nickname">昵称</label>
           <input type="text" id="nickname" v-model="profile.nickname" placeholder="请输入昵称">
@@ -15,7 +16,10 @@
           <label for="username">用户名</label>
           <input type="text" id="username" v-model="profile.username" disabled placeholder="用户名不可修改">
         </div>
-        <button type="button" class="save-btn" @click="saveProfile">保存修改</button>
+        <button type="button" class="save-btn" :disabled="saving || loading" @click="saveProfile">
+          {{ saving ? '保存中…' : '保存修改' }}
+        </button>
+        <p v-if="errorMsg" class="error-msg">{{ errorMsg }}</p>
       </form>
     </div>
   </div>
@@ -23,35 +27,107 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const loading = ref(true)
+const saving = ref(false)
+const errorMsg = ref('')
 
 // 个人信息数据
 const profile = ref({
+  id: null,
   username: '',
   nickname: '',
   email: ''
 })
 
-// 页面加载时获取本地存储的用户信息
-onMounted(() => {
-  const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+const applyProfile = (user) => {
   profile.value = {
-    username: userInfo.username || '',
-    nickname: userInfo.nickname || '',
-    email: userInfo.email || ''
+    id: user.id ?? null,
+    username: user.username || '',
+    nickname: user.nickname || '',
+    email: user.email || ''
   }
-  console.log('个人信息组件已加载');
+}
+
+const syncLocalUserInfo = (user) => {
+  const oldUserInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+  const newUserInfo = { ...oldUserInfo, ...user }
+  localStorage.setItem('userInfo', JSON.stringify(newUserInfo))
+  window.dispatchEvent(new CustomEvent('user-info-updated', { detail: newUserInfo }))
+}
+
+// 页面加载时从服务端获取最新用户信息
+onMounted(async () => {
+  const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+  if (!userInfo.id) {
+    errorMsg.value = '未找到登录信息，请重新登录'
+    loading.value = false
+    router.push('/login')
+    return
+  }
+
+  try {
+    const response = await fetch(`/api/user/${userInfo.id}`)
+    const result = await response.json()
+    if (result.code === 0 && result.data) {
+      applyProfile(result.data)
+      syncLocalUserInfo(result.data)
+    } else {
+      applyProfile(userInfo)
+      errorMsg.value = result.message || '加载用户信息失败'
+    }
+  } catch (err) {
+    applyProfile(userInfo)
+    errorMsg.value = '网络错误，已显示本地缓存信息'
+    console.error('加载用户信息失败:', err)
+  } finally {
+    loading.value = false
+  }
 })
 
 // 保存个人信息
-const saveProfile = () => {
-  const oldUserInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
-  const newUserInfo = {
-    ...oldUserInfo,
-    nickname: profile.value.nickname,
-    email: profile.value.email
+const saveProfile = async () => {
+  if (!profile.value.id) {
+    errorMsg.value = '未找到用户 ID，请重新登录'
+    return
   }
-  localStorage.setItem('userInfo', JSON.stringify(newUserInfo))
-  alert('个人信息保存成功')
+
+  saving.value = true
+  errorMsg.value = ''
+
+  try {
+    const response = await fetch('/api/user', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: profile.value.id,
+        username: profile.value.username,
+        nickname: profile.value.nickname.trim(),
+        email: profile.value.email.trim()
+      })
+    })
+    const result = await response.json()
+
+    if (result.code === 0) {
+      const updatedUser = {
+        id: profile.value.id,
+        username: profile.value.username,
+        nickname: profile.value.nickname.trim(),
+        email: profile.value.email.trim()
+      }
+      syncLocalUserInfo(updatedUser)
+      alert('个人信息保存成功')
+    } else {
+      errorMsg.value = result.message || '保存失败'
+    }
+  } catch (err) {
+    errorMsg.value = '网络错误，请稍后重试'
+    console.error('保存个人信息失败:', err)
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 
@@ -119,12 +195,30 @@ input:focus {
   transition: background-color 0.3s;
 }
 
-.save-btn:hover {
+.save-btn:hover:not(:disabled) {
   background-color: #359e75;
+}
+
+.save-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.error-msg {
+  margin-top: 1rem;
+  color: #ff4d4f;
+  text-align: center;
+  font-size: 0.95rem;
 }
 
 h3 {
   color: #333;
   margin-bottom: 0.5rem;
+}
+
+.state {
+  text-align: center;
+  color: #666;
+  padding: 2rem 0;
 }
 </style>

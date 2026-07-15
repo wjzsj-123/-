@@ -40,7 +40,7 @@
       <div v-for="item in comments" :key="item.id" :id="'comment-' + item.id" class="comment-card">
         <div class="meta">
           <router-link class="user user-link" :to="'/home/user/center/' + item.userId">
-            {{ item.nickname || item.username || `用户${item.userId}` }}
+            {{ displayUserName(item) }}
           </router-link>
           <span :class="['sentiment', item.sentiment === 1 ? 'good' : 'bad']">
             {{ item.sentiment === 1 ? '好评' : '差评' }}
@@ -97,6 +97,7 @@
 import { onMounted, ref, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { displayUserName } from '@/utils/userDisplay'
 
 const route = useRoute()
 const router = useRouter()
@@ -210,7 +211,6 @@ const submitComment = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        userId,
         sentiment: Number(newComment.value.sentiment),
         content: newComment.value.content.trim()
       })
@@ -236,7 +236,7 @@ const toggleLike = async (item) => {
     return
   }
   try {
-    const response = await fetch(`/api/question-set/public/${setId}/comments/${item.id}/like?userId=${userId}`, {
+    const response = await fetch(`/api/question-set/public/${setId}/comments/${item.id}/like`, {
       method: 'POST'
     })
     const result = await response.json()
@@ -266,7 +266,7 @@ const deleteComment = async (item) => {
     return
   }
   try {
-    const response = await fetch(`/api/question-set/public/${setId}/comments/${item.id}?userId=${uid}`, {
+    const response = await fetch(`/api/question-set/public/${setId}/comments/${item.id}`, {
       method: 'DELETE'
     })
     const result = await response.json()

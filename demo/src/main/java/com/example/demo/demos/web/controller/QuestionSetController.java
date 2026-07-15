@@ -2,6 +2,7 @@ package com.example.demo.demos.web.controller;
 
 import com.alibaba.excel.EasyExcel;
 import com.alibaba.fastjson.JSON;
+import com.example.demo.demos.web.auth.AuthContext;
 import com.example.demo.demos.web.common.Result;
 import com.example.demo.demos.web.dto.QuestionCountDTO;
 import com.example.demo.demos.web.dto.QuestionExcelDTO;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -309,7 +311,8 @@ public class QuestionSetController {
     @PostMapping("/import/{setId}")
     public Result importQuestionSet(
             @PathVariable Long setId,
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            HttpServletRequest request) {
         try {
             if (file.isEmpty()) {
                 return Result.error("请选择Excel文件");
@@ -317,8 +320,8 @@ public class QuestionSetController {
             if (setId == null) {
                 return Result.error("题库ID不能为空");
             }
-
-            int count = questionSetService.importQuestionSet(setId, file.getInputStream());
+            Long userId = AuthContext.requireUserId(request);
+            int count = questionSetService.importQuestionSet(setId, userId, file.getInputStream());
             return Result.success("导入成功，共导入" + count + "道题目", count);
         } catch (Exception e) {
             return Result.error("导入失败：" + e.getMessage());
@@ -333,9 +336,10 @@ public class QuestionSetController {
     @PutMapping("/publish/{setId}")
     public Result publishQuestionSet(
             @PathVariable Long setId,
-            @RequestParam Long publisherId
+            HttpServletRequest request
     ) {
         try {
+            Long publisherId = AuthContext.requireUserId(request);
             int count = questionSetService.publishQuestionSet(setId, publisherId);
             return count > 0 ? Result.success("发布公共题库成功") : Result.error("发布失败");
         } catch (IllegalArgumentException e) {
@@ -357,10 +361,12 @@ public class QuestionSetController {
             @RequestParam(required = false, defaultValue = "publishTime") String sortBy,
             @RequestParam(required = false) Long currentUserId,
             @RequestParam(required = false, defaultValue = "1") Integer page,
-            @RequestParam(required = false, defaultValue = "10") Integer size
+            @RequestParam(required = false, defaultValue = "10") Integer size,
+            HttpServletRequest request
     ) {
         try {
-            Map<String, Object> publicSets = questionSetService.getPublicQuestionSets(category, name, sortBy, currentUserId, page, size);
+            Long viewerId = AuthContext.resolveUserId(request, currentUserId);
+            Map<String, Object> publicSets = questionSetService.getPublicQuestionSets(category, name, sortBy, viewerId, page, size);
             return Result.success("查询公共题库成功", publicSets);
         } catch (Exception e) {
             return Result.error("查询失败：" + e.getMessage());
@@ -370,10 +376,11 @@ public class QuestionSetController {
     @PostMapping("/public/{setId}/vote")
     public Result votePublicQuestionSet(
             @PathVariable Long setId,
-            @RequestParam Long userId,
-            @RequestParam Integer voteType
+            @RequestParam Integer voteType,
+            HttpServletRequest request
     ) {
         try {
+            Long userId = AuthContext.requireUserId(request);
             int currentVote = questionSetService.votePublicQuestionSet(setId, userId, voteType);
             return Result.success("操作成功", currentVote);
         } catch (IllegalArgumentException e) {
@@ -391,9 +398,10 @@ public class QuestionSetController {
     @PostMapping("/public/import/{publicSetId}")
     public Result importPublicQuestionSet(
             @PathVariable Long publicSetId,
-            @RequestParam Long userId
+            HttpServletRequest request
     ) {
         try {
+            Long userId = AuthContext.requireUserId(request);
             Long newSetId = questionSetService.importPublicQuestionSet(publicSetId, userId);
             return Result.success("导入公共题库成功", newSetId);
         } catch (IllegalArgumentException e) {
@@ -414,9 +422,12 @@ public class QuestionSetController {
     public Result updatePublicStatus(
             @PathVariable Long id,
             @RequestParam Boolean isPublic,
-            @RequestParam(required = false) Long publisherId) { // 私有状态时非必填
+            @RequestParam(required = false) Long publisherId,
+            HttpServletRequest request) {
         try {
-            int count = questionSetService.updatePublicStatus(id, isPublic, publisherId);
+            Long userId = AuthContext.requireUserId(request);
+            Long pid = Boolean.TRUE.equals(isPublic) ? userId : publisherId;
+            int count = questionSetService.updatePublicStatus(id, isPublic, pid);
             return count > 0
                     ? Result.success("更新题库公共状态成功")
                     : Result.error("未找到该题库或状态无变更");

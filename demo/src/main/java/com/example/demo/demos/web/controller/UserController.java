@@ -1,11 +1,17 @@
 package com.example.demo.demos.web.controller;
 
+import com.example.demo.demos.web.auth.AuthContext;
+import com.example.demo.demos.web.auth.JwtService;
+import com.example.demo.demos.web.auth.TokenSessionService;
 import com.example.demo.demos.web.common.Result;
+import com.example.demo.demos.web.dto.LoginResponse;
 import com.example.demo.demos.web.pojo.User;
+import com.example.demo.demos.web.redis.LoginRateLimitService;
 import com.example.demo.demos.web.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @RestController
@@ -14,6 +20,15 @@ public class UserController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private LoginRateLimitService loginRateLimitService;
+
+    @Resource
+    private JwtService jwtService;
+
+    @Resource
+    private TokenSessionService tokenSessionService;
 
     // 新增用户
     @PostMapping
@@ -96,6 +111,9 @@ public class UserController {
                 return Result.error("用户名不能为空");
             }
             User user = userService.getUserByUsername(username);
+            if (user != null) {
+                user.setPassword(null);
+            }
             return user != null ? Result.success("查询成功", user) : Result.error("未找到该用户");
         } catch (Exception e) {
             return Result.error("查询用户失败：" + e.getMessage());
@@ -107,6 +125,7 @@ public class UserController {
     public Result getAllUsers() {
         try {
             List<User> users = userService.getAllUsers();
+            users.forEach(u -> u.setPassword(null));
             return Result.success("查询成功", users);
         } catch (Exception e) {
             return Result.error("查询用户列表失败：" + e.getMessage());
@@ -116,6 +135,12 @@ public class UserController {
     // 注册接口
     @PostMapping("/register")
     public Result register(@RequestBody User user) {
+        if (user.getUsername() == null || user.getUsername().trim().isEmpty()) {
+            return Result.error("用户名不能为空");
+        }
+        if (user.getPassword() == null || user.getPassword().trim().isEmpty()) {
+            return Result.error("密码不能为空");
+        }
         if (userService.getUserByUsername(user.getUsername()) != null) {
             return Result.error("用户名已存在");
         }
@@ -125,12 +150,52 @@ public class UserController {
 
     // 登录接口
     @PostMapping("/login")
-    public Result login(@RequestBody User user) {
-        User dbUser = userService.getUserByUsername(user.getUsername());
-        if (dbUser == null || !dbUser.getPassword().equals(user.getPassword())) {
+    public Result login(@RequestBody User user, HttpServletRequest request) {
+        String clientIp = resolveClientIp(request);
+        if (loginRateLimitService.isBlocked(clientIp)) {
+            return Result.error("登录失败次数过多，请 15 分钟后再试");
+        }
+        if (user.getUsername() == null || user.getUsername().trim().isEmpty()) {
             return Result.error("用户名或密码错误");
         }
-        dbUser.setPassword(null);
-        return Result.success("登录成功", dbUser);
+        if (user.getPassword() == null || user.getPassword().isEmpty()) {
+            return Result.error("用户名或密码错误");
+        }
+        User dbUser = userService.authenticate(user.getUsername(), user.getPassword());
+        if (dbUser == null) {
+            loginRateLimitService.recordFailure(clientIp);
+            return Result.error("用户名或密码错误");
+        }
+        loginRateLimitService.clearFailures(clientIp);
+        String token = jwtService.generateToken(dbUser.getId(), dbUser.getUsername());
+        tokenSessionService.storeToken(dbUser.getId(), token);
+        LoginResponse loginResponse = new LoginResponse();
+        loginResponse.setToken(token);
+        loginResponse.setUser(dbUser);
+        return Result.success("登录成功", loginResponse);
+    }
+
+    @PostMapping("/logout")
+    public Result logout(HttpServletRequest request) {
+        Long userId = AuthContext.getUserId(request);
+        if (userId != null) {
+            tokenSessionService.removeToken(userId);
+        }
+        return Result.success("退出成功");
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        if (request == null) {
+            return "unknown";
+        }
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isEmpty()) {
+            return forwarded.split(",")[0].trim();
+        }
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isEmpty()) {
+            return realIp;
+        }
+        return request.getRemoteAddr() != null ? request.getRemoteAddr() : "unknown";
     }
 }

@@ -224,14 +224,14 @@ const fetchQuestionSets = async () => {
 
     // 5. 处理响应
     if (result.code === 0) {
-      questionSets.value = result.data || [];  // 兼容空数据
+      questionSets.value = Array.isArray(result.data) ? result.data : [];
     } else {
-      alert(result.message || '获取题库列表失败');
+      ElMessage.error(result.message || '获取题库列表失败');
       questionSets.value = [];
     }
   } catch (err) {
     console.error('获取题库失败:', err);
-    alert('网络错误，请稍后重试');
+    ElMessage.error('网络错误，请稍后重试');
     questionSets.value = [];
   } finally {
     // 6. 无论成功失败都关闭加载状态

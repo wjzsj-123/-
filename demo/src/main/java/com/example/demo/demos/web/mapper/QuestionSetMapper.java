@@ -87,6 +87,12 @@ public interface QuestionSetMapper {
             @Param("name") String name
     );
 
+    List<QuestionSet> selectPublicQuestionSetsByIds(
+            @Param("ids") List<Long> ids,
+            @Param("category") String category,
+            @Param("currentUserId") Long currentUserId
+    );
+
     // 导入公共题库（插入新的私有题库）
     int insertImportedQuestionSet(QuestionSet questionSet);
 

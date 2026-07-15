@@ -1,11 +1,13 @@
 package com.example.demo.demos.web.controller;
 
+import com.example.demo.demos.web.auth.AuthContext;
 import com.example.demo.demos.web.common.Result;
 import com.example.demo.demos.web.pojo.QuestionSetComment;
 import com.example.demo.demos.web.service.QuestionSetCommentService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,10 +20,12 @@ public class QuestionSetCommentController {
     @PostMapping("/{questionSetId}/comments")
     public Result<?> addComment(
             @PathVariable Long questionSetId,
-            @RequestBody QuestionSetComment comment
+            @RequestBody QuestionSetComment comment,
+            HttpServletRequest request
     ) {
         try {
             comment.setQuestionSetId(questionSetId);
+            comment.setUserId(AuthContext.requireUserId(request));
             Long id = questionSetCommentService.addComment(comment);
             return Result.success("评论发布成功", id);
         } catch (IllegalArgumentException e) {
@@ -37,10 +41,12 @@ public class QuestionSetCommentController {
             @RequestParam(required = false, defaultValue = "latest") String sortBy,
             @RequestParam(required = false) Long currentUserId,
             @RequestParam(required = false, defaultValue = "1") Integer page,
-            @RequestParam(required = false, defaultValue = "10") Integer size
+            @RequestParam(required = false, defaultValue = "10") Integer size,
+            HttpServletRequest request
     ) {
         try {
-            Map<String, Object> comments = questionSetCommentService.getPublicComments(questionSetId, sortBy, currentUserId, page, size);
+            Long viewerId = AuthContext.resolveUserId(request, currentUserId);
+            Map<String, Object> comments = questionSetCommentService.getPublicComments(questionSetId, sortBy, viewerId, page, size);
             return Result.success("查询成功", comments);
         } catch (IllegalArgumentException e) {
             return Result.error(e.getMessage());
@@ -53,9 +59,10 @@ public class QuestionSetCommentController {
     public Result<?> toggleLike(
             @PathVariable Long questionSetId,
             @PathVariable Long commentId,
-            @RequestParam Long userId
+            HttpServletRequest request
     ) {
         try {
+            Long userId = AuthContext.requireUserId(request);
             boolean liked = questionSetCommentService.toggleLike(commentId, questionSetId, userId);
             Map<String, Object> data = new HashMap<>();
             data.put("liked", liked);
@@ -71,9 +78,10 @@ public class QuestionSetCommentController {
     public Result<?> deleteComment(
             @PathVariable Long questionSetId,
             @PathVariable Long commentId,
-            @RequestParam Long userId
+            HttpServletRequest request
     ) {
         try {
+            Long userId = AuthContext.requireUserId(request);
             questionSetCommentService.deleteComment(commentId, questionSetId, userId);
             return Result.success("删除评论成功", null);
         } catch (IllegalArgumentException e) {

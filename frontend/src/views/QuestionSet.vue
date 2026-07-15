@@ -47,6 +47,7 @@
       <el-upload
           class="import-btn"
           :action="`/api/question-set/import/${questionSetId}`"
+          :headers="uploadHeaders"
           :on-success="handleImportSuccess"
           :on-error="handleImportError"
           :before-upload="beforeUpload"
@@ -166,10 +167,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import QuestionForm from "@/views/QuestionForm.vue";
 import { ElMessage } from 'element-plus'; // 导入消息提示
+
+const uploadHeaders = computed(() => {
+  const token = localStorage.getItem('accessToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+});
 
 // 显示模式（默认完整模式）
 const displayMode = ref('full'); // 'full' 完整模式, 'simple' 简化模式

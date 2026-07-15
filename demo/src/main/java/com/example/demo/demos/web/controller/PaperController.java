@@ -1,5 +1,6 @@
 package com.example.demo.demos.web.controller;
 
+import com.example.demo.demos.web.auth.AuthContext;
 import com.example.demo.demos.web.common.Result;
 import com.example.demo.demos.web.pojo.Paper;
 import com.example.demo.demos.web.pojo.PaperAnswerSubmit;
@@ -10,6 +11,7 @@ import com.example.demo.demos.web.service.PaperService;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -221,10 +223,12 @@ public class PaperController {
             @RequestParam(required = false, defaultValue = "publishTime") String sortBy,
             @RequestParam(required = false) Long currentUserId,
             @RequestParam(required = false, defaultValue = "1") Integer page,
-            @RequestParam(required = false, defaultValue = "10") Integer size
+            @RequestParam(required = false, defaultValue = "10") Integer size,
+            HttpServletRequest request
     ) {
         try {
-            Map<String, Object> data = paperService.getPublicPapers(name, sortBy, currentUserId, page, size);
+            Long viewerId = AuthContext.resolveUserId(request, currentUserId);
+            Map<String, Object> data = paperService.getPublicPapers(name, sortBy, viewerId, page, size);
             return Result.success("查询成功", data);
         } catch (Exception e) {
             return Result.error("查询在线试卷失败：" + e.getMessage());

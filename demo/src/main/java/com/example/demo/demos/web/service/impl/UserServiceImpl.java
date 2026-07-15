@@ -2,6 +2,7 @@ package com.example.demo.demos.web.service.impl;
 
 import com.example.demo.demos.web.pojo.User;
 import com.example.demo.demos.web.mapper.UserMapper;
+import com.example.demo.demos.web.service.PasswordService;
 import com.example.demo.demos.web.service.UserService;
 import org.springframework.stereotype.Service;
 import javax.annotation.Resource;
@@ -14,9 +15,12 @@ public class UserServiceImpl implements UserService {
     @Resource
     private UserMapper userMapper;
 
+    @Resource
+    private PasswordService passwordService;
+
     @Override
     public int addUser(User user) {
-        // 设置创建时间和更新时间
+        encodePasswordIfPresent(user);
         user.setCreateTime(LocalDateTime.now());
         user.setUpdateTime(LocalDateTime.now());
         return userMapper.insert(user);
@@ -35,7 +39,7 @@ public class UserServiceImpl implements UserService {
         if (user.getId() == null) {
             throw new IllegalArgumentException("用户ID不能为空");
         }
-        // 更新时间戳
+        preparePasswordForUpdate(user);
         user.setUpdateTime(LocalDateTime.now());
         return userMapper.updateById(user);
     }
@@ -59,5 +63,58 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User> getAllUsers() {
         return userMapper.selectAll();
+    }
+
+    @Override
+    public User authenticate(String username, String rawPassword) {
+        if (username == null || username.trim().isEmpty()) {
+            return null;
+        }
+        if (rawPassword == null || rawPassword.isEmpty()) {
+            return null;
+        }
+
+        User user = userMapper.selectByUsername(username.trim());
+        if (user == null) {
+            return null;
+        }
+
+        String stored = user.getPassword();
+        boolean matched;
+        if (passwordService.isBcryptEncoded(stored)) {
+            matched = passwordService.matches(rawPassword, stored);
+        } else {
+            matched = rawPassword.equals(stored);
+            if (matched) {
+                userMapper.updatePassword(user.getId(), passwordService.encode(rawPassword));
+            }
+        }
+
+        if (!matched) {
+            return null;
+        }
+
+        user.setPassword(null);
+        return user;
+    }
+
+    private void encodePasswordIfPresent(User user) {
+        if (user.getPassword() == null || user.getPassword().trim().isEmpty()) {
+            throw new IllegalArgumentException("密码不能为空");
+        }
+        if (!passwordService.isBcryptEncoded(user.getPassword())) {
+            user.setPassword(passwordService.encode(user.getPassword()));
+        }
+    }
+
+    /** 未传密码或空字符串时不更新 password 字段；传入明文则 BCrypt 编码 */
+    private void preparePasswordForUpdate(User user) {
+        if (user.getPassword() == null || user.getPassword().trim().isEmpty()) {
+            user.setPassword(null);
+            return;
+        }
+        if (!passwordService.isBcryptEncoded(user.getPassword())) {
+            user.setPassword(passwordService.encode(user.getPassword()));
+        }
     }
 }

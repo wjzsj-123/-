@@ -7,6 +7,7 @@ import com.example.demo.demos.web.mapper.UserMessageMapper;
 import com.example.demo.demos.web.pojo.User;
 import com.example.demo.demos.web.pojo.UserMessage;
 import com.example.demo.demos.web.service.UserMessageService;
+import com.example.demo.demos.web.redis.MessageCounterService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,8 @@ public class UserMessageServiceImpl implements UserMessageService {
     private UserFollowMapper userFollowMapper;
     @Resource
     private UserMapper userMapper;
+    @Resource
+    private MessageCounterService messageCounterService;
 
     private static String preview(String text, int max) {
         if (text == null) {
@@ -64,6 +67,7 @@ public class UserMessageServiceImpl implements UserMessageService {
             m.setRefCommentId(null);
             m.setActorUserId(publisherId);
             userMessageMapper.insert(m);
+            messageCounterService.incrementUnread(follower.getId());
         }
     }
 
@@ -93,6 +97,7 @@ public class UserMessageServiceImpl implements UserMessageService {
             m.setRefCommentId(null);
             m.setActorUserId(ownerId);
             userMessageMapper.insert(m);
+            messageCounterService.incrementUnread(follower.getId());
         }
     }
 
@@ -113,6 +118,7 @@ public class UserMessageServiceImpl implements UserMessageService {
         m.setRefCommentId(commentId);
         m.setActorUserId(actorUserId);
         userMessageMapper.insert(m);
+        messageCounterService.incrementUnread(recipientUserId);
     }
 
     @Override
@@ -121,7 +127,11 @@ public class UserMessageServiceImpl implements UserMessageService {
         if (messageId == null || userId == null) {
             return 0;
         }
-        return userMessageMapper.markRead(messageId, userId);
+        int rows = userMessageMapper.markRead(messageId, userId);
+        if (rows > 0) {
+            messageCounterService.decrementUnread(userId);
+        }
+        return rows;
     }
 
     @Override
@@ -129,7 +139,7 @@ public class UserMessageServiceImpl implements UserMessageService {
         if (userId == null) {
             return 0;
         }
-        return userMessageMapper.countUnread(userId);
+        return messageCounterService.getUnreadCount(userId);
     }
 
     @Override
@@ -160,7 +170,7 @@ public class UserMessageServiceImpl implements UserMessageService {
         map.put("total", total);
         map.put("page", page);
         map.put("size", size);
-        map.put("unreadCount", userMessageMapper.countUnread(userId));
+        map.put("unreadCount", messageCounterService.getUnreadCount(userId));
         return map;
     }
 

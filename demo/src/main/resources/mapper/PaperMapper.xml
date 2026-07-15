@@ -242,6 +242,44 @@
           </if>
     </select>
 
+    <select id="selectPublicPapersByIds" resultType="com.example.demo.demos.web.pojo.Paper">
+        SELECT
+            p.id, p.title, p.description, p.user_id, p.category, p.total_questions, p.create_time,
+            p.last_answer_time, p.is_answered, p.is_shared, p.share_code, p.source_paper_id,
+            IFNULL(stats.answer_count, 0) AS answer_count,
+            IFNULL(stats.copy_count, 0) AS copy_count,
+            (IFNULL(stats.answer_count, 0) * 2 + IFNULL(stats.copy_count, 0) * 3) AS hot_score,
+            pu.nickname AS publisher_nickname,
+            pu.username AS publisher_username,
+            <choose>
+                <when test="currentUserId != null">
+                    EXISTS (
+                        SELECT 1 FROM user_follow uf
+                        WHERE uf.follower_id = #{currentUserId} AND uf.followee_id = p.user_id
+                    ) AS viewer_follows_publisher
+                </when>
+                <otherwise>
+                    0 AS viewer_follows_publisher
+                </otherwise>
+            </choose>
+        FROM paper p
+        LEFT JOIN user pu ON pu.id = p.user_id
+        LEFT JOIN (
+            SELECT
+                p0.id AS paper_id,
+                COUNT(DISTINCT ua.user_id) AS answer_count,
+                (SELECT COUNT(1) FROM paper cp WHERE cp.source_paper_id = p0.id) AS copy_count
+            FROM paper p0
+            LEFT JOIN user_answer ua ON ua.paper_id = p0.id
+            GROUP BY p0.id
+        ) stats ON stats.paper_id = p.id
+        WHERE p.is_shared = 1
+          AND p.id IN
+          <foreach collection="ids" item="id" open="(" separator="," close=")">
+              #{id}
+          </foreach>
+    </select>
+
     <select id="selectByShareCode" resultType="com.example.demo.demos.web.pojo.Paper">
         SELECT <include refid="BaseColumnList"/> FROM paper
         WHERE share_code = #{shareCode}

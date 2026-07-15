@@ -1,7 +1,7 @@
 <template>
   <div class="home-content">
     <h2>欢迎使用题库系统
-      <span v-if="userInfo.nickname">，{{ userInfo.nickname }}</span>
+      <span v-if="displayUserName(userInfo)">，{{ displayUserName(userInfo) }}</span>
     </h2>
 
     <!-- 统计数据容器 -->
@@ -185,6 +185,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { displayUserName } from '@/utils/userDisplay';
 
 // 统计数据变量
 const questionSetCount = ref(0);

@@ -113,10 +113,12 @@ const router = createRouter({
 
 // 全局路由守卫（所有 /home 下页面需登录）
 router.beforeEach((to, from, next) => {
+    const token = localStorage.getItem('accessToken');
     const userInfo = localStorage.getItem('userInfo');
+    const authed = token && userInfo;
     if (to.path.startsWith('/home')) {
-        userInfo ? next() : next('/login');
-    } else if ((to.path === '/login' || to.path === '/register') && userInfo) {
+        authed ? next() : next('/login');
+    } else if ((to.path === '/login' || to.path === '/register') && authed) {
         next('/home');
     } else {
         next();

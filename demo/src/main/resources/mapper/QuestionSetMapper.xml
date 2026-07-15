@@ -231,6 +231,67 @@
         </trim>
     </select>
 
+    <select id="selectPublicQuestionSetsByIds" resultType="com.example.demo.demos.web.pojo.QuestionSet">
+        SELECT
+            qs.id, qs.user_id, qs.name, qs.category, qs.create_time, qs.update_time, qs.is_public, qs.publisher_id, qs.publish_time,
+            COALESCE(v.like_count, 0) AS like_count,
+            COALESCE(v.dislike_count, 0) AS dislike_count,
+            (COALESCE(v.like_count, 0) * 2 - COALESCE(v.dislike_count, 0)) AS favorability,
+            COALESCE(imp.import_count, 0) AS import_count,
+            (COALESCE(v.like_count, 0) * 2 + COALESCE(imp.import_count, 0) * 3) AS hot_score,
+            <choose>
+                <when test="currentUserId != null">
+                    COALESCE((
+                        SELECT qsv.vote_type
+                        FROM question_set_vote qsv
+                        WHERE qsv.question_set_id = qs.id
+                          AND qsv.user_id = #{currentUserId}
+                        LIMIT 1
+                    ), 0) AS user_vote
+                </when>
+                <otherwise>
+                    0 AS user_vote
+                </otherwise>
+            </choose>,
+            pu.nickname AS publisher_nickname,
+            pu.username AS publisher_username,
+            <choose>
+                <when test="currentUserId != null">
+                    EXISTS (
+                        SELECT 1 FROM user_follow uf
+                        WHERE uf.follower_id = #{currentUserId} AND uf.followee_id = qs.publisher_id
+                    ) AS viewer_follows_publisher
+                </when>
+                <otherwise>
+                    0 AS viewer_follows_publisher
+                </otherwise>
+            </choose>
+        FROM question_set qs
+        LEFT JOIN user pu ON pu.id = qs.publisher_id
+        LEFT JOIN (
+            SELECT
+                question_set_id,
+                SUM(CASE WHEN vote_type = 1 THEN 1 ELSE 0 END) AS like_count,
+                SUM(CASE WHEN vote_type = -1 THEN 1 ELSE 0 END) AS dislike_count
+            FROM question_set_vote
+            GROUP BY question_set_id
+        ) v ON v.question_set_id = qs.id
+        LEFT JOIN (
+            SELECT source_public_set_id AS public_set_id, COUNT(1) AS import_count
+            FROM question_set
+            WHERE source_public_set_id IS NOT NULL
+            GROUP BY source_public_set_id
+        ) imp ON imp.public_set_id = qs.id
+        WHERE qs.is_public = 1
+          AND qs.id IN
+          <foreach collection="ids" item="id" open="(" separator="," close=")">
+              #{id}
+          </foreach>
+          <if test="category != null and category != ''">
+              AND qs.category = #{category}
+          </if>
+    </select>
+
     <!-- 导入公共题库（插入新私有题库） -->
     <insert id="insertImportedQuestionSet" parameterType="com.example.demo.demos.web.pojo.QuestionSet"
             useGeneratedKeys="true" keyProperty="id">

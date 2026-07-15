@@ -47,6 +47,10 @@ public interface PaperMapper {
 
     int countPublicPapers(@Param("name") String name);
 
+    List<Paper> selectPublicPapersByIds(
+            @Param("ids") List<Long> ids,
+            @Param("currentUserId") Long currentUserId);
+
     /** 某用户公开的在线试卷（用户中心展示） */
     List<Paper> selectSharedByUserId(@Param("userId") Long userId);
 

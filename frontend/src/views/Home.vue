@@ -9,9 +9,9 @@
           class="user-name-link"
           :to="'/home/user/center/' + userInfo.id"
         >
-          {{ userInfo.nickname || userInfo.username }}
+          {{ displayUserName(userInfo) }}
         </router-link>
-        <span v-else class="user-name-plain">{{ userInfo.nickname || userInfo.username }}</span>
+        <span v-else class="user-name-plain">{{ displayUserName(userInfo) }}</span>
         <div
           v-if="userInfo.id"
           class="mail-wrap"
@@ -37,6 +37,7 @@
               @mouseenter="markPreviewRead(m)"
             >
               <div class="drop-title">{{ m.title }}</div>
+              <div v-if="messageActorName(m)" class="drop-actor">来自 {{ messageActorName(m) }}</div>
               <div class="drop-preview">{{ m.contentPreview }}</div>
             </div>
             <router-link to="/home/messages" class="drop-more" @click="showMailPreview = false">进入消息中心 →</router-link>
@@ -90,8 +91,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watchEffect, computed, watch } from 'vue';
+import { ref, onMounted, watchEffect, computed, watch, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
+import { displayUserName } from '@/utils/userDisplay';
 
 const router = useRouter();
 const route = useRoute();
@@ -112,7 +114,7 @@ const fetchUnreadCount = async () => {
   const id = userInfo.value?.id;
   if (!id) return;
   try {
-    const r = await fetch(`/api/messages/unread-count?userId=${id}`);
+    const r = await fetch('/api/messages/unread-count');
     const j = await r.json();
     if (j.code === 0) {
       unreadCount.value = Number(j.data) || 0;
@@ -126,7 +128,7 @@ const fetchPreview = async () => {
   const id = userInfo.value?.id;
   if (!id) return;
   try {
-    const r = await fetch(`/api/messages/preview?userId=${id}`);
+    const r = await fetch('/api/messages/preview');
     const j = await r.json();
     previewItems.value = j.code === 0 ? (j.data || []) : [];
   } catch {
@@ -150,12 +152,19 @@ const onMailLeave = () => {
   }, 220);
 };
 
+const messageActorName = (m) => {
+  if (!m?.actorUserId) return ''
+  const name = displayUserName(m)
+  if (m.title && name && m.title.includes(name)) return ''
+  return name
+}
+
 const markPreviewRead = async (m) => {
   if (m.readAt) return;
   const id = userInfo.value?.id;
   if (!id) return;
   try {
-    const res = await fetch(`/api/messages/${m.id}/read?userId=${id}`, { method: 'POST' });
+    const res = await fetch(`/api/messages/${m.id}/read`, { method: 'POST' });
     const j = await res.json();
     if (j.code === 0) {
       m.readAt = new Date().toISOString();
@@ -166,15 +175,33 @@ const markPreviewRead = async (m) => {
   }
 };
 
-// 页面加载时获取用户信息
-onMounted(() => {
+const readStoredUser = () => {
   const storedUser = localStorage.getItem('userInfo');
   if (storedUser) {
     userInfo.value = JSON.parse(storedUser);
+    return true;
+  }
+  return false;
+};
+
+const onUserInfoUpdated = (event) => {
+  if (event.detail) {
+    userInfo.value = event.detail;
   } else {
-    // 如果未登录，跳转回登录页
+    readStoredUser();
+  }
+};
+
+// 页面加载时获取用户信息
+onMounted(() => {
+  if (!readStoredUser()) {
     router.push('/login');
   }
+  window.addEventListener('user-info-updated', onUserInfoUpdated);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('user-info-updated', onUserInfoUpdated);
 });
 
 // 使用watchEffect监控路由变化和localStorage变化
@@ -199,7 +226,13 @@ watch(
 );
 
 // 退出登录
-const handleLogout = () => {
+const handleLogout = async () => {
+  try {
+    await fetch('/api/user/logout', { method: 'POST' });
+  } catch {
+    /* ignore */
+  }
+  localStorage.removeItem('accessToken');
   localStorage.removeItem('userInfo');
   router.push('/login');
 };
@@ -211,6 +244,7 @@ const handleLogout = () => {
   display: flex;
   flex-direction: column;
   height: 100vh; /* 占满整个视口高度 */
+  width:100vh;
   overflow: hidden; /* 防止整体滚动 */
 }
 
@@ -341,6 +375,12 @@ const handleLogout = () => {
   font-size: 13px;
   margin-bottom: 4px;
   color: #303133;
+}
+
+.drop-actor {
+  font-size: 11px;
+  color: #909399;
+  margin-bottom: 2px;
 }
 
 .drop-preview {

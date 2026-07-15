@@ -13,7 +13,10 @@
         @mouseenter="markRead(m)"
       >
         <div class="msg-head">
-          <span class="msg-title">{{ m.title }}</span>
+          <div class="msg-title-wrap">
+            <span class="msg-title">{{ m.title }}</span>
+            <span v-if="messageActorName(m)" class="msg-actor">来自 {{ messageActorName(m) }}</span>
+          </div>
           <span class="msg-time">{{ formatTime(m.createdAt) }}</span>
         </div>
         <p class="msg-preview">{{ m.contentPreview }}</p>
@@ -57,6 +60,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { displayUserName } from '@/utils/userDisplay'
 
 const router = useRouter()
 const loading = ref(true)
@@ -78,6 +82,14 @@ const userId = () => {
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / size.value)))
 
 const formatTime = (t) => (t ? new Date(t).toLocaleString() : '')
+
+/** 消息关联用户展示名（优先昵称）；标题已含昵称时可不重复显示 */
+const messageActorName = (m) => {
+  if (!m?.actorUserId) return ''
+  const name = displayUserName(m)
+  if (m.title && name && m.title.includes(name)) return ''
+  return name
+}
 
 const load = async () => {
   const uid = userId()
@@ -121,7 +133,7 @@ const oneClickImportSet = async (m) => {
   const uid = userId()
   if (!uid) return
   try {
-    const res = await fetch(`/api/question-set/public/import/${m.refQuestionSetId}?userId=${uid}`, { method: 'POST' })
+    const res = await fetch(`/api/question-set/public/import/${m.refQuestionSetId}`, { method: 'POST' })
     const json = await res.json()
     if (json.code === 0) {
       ElMessage.success('已复制到你的题库')
@@ -205,9 +217,20 @@ h2 {
   gap: 12px;
   margin-bottom: 8px;
 }
+.msg-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
 .msg-title {
   font-weight: 600;
   color: #303133;
+}
+.msg-actor {
+  font-size: 12px;
+  color: #909399;
+  font-weight: normal;
 }
 .msg-time {
   font-size: 12px;

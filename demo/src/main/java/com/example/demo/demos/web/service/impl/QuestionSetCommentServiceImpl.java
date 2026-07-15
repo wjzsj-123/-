@@ -8,6 +8,7 @@ import com.example.demo.demos.web.pojo.QuestionSetComment;
 import com.example.demo.demos.web.pojo.QuestionSetCommentLike;
 import com.example.demo.demos.web.service.QuestionSetCommentService;
 import com.example.demo.demos.web.service.UserMessageService;
+import com.example.demo.demos.web.redis.ActionRateLimitService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,9 @@ public class QuestionSetCommentServiceImpl implements QuestionSetCommentService 
     @Resource
     private UserMessageService userMessageService;
 
+    @Resource
+    private ActionRateLimitService actionRateLimitService;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long addComment(QuestionSetComment comment) {
@@ -50,6 +54,9 @@ public class QuestionSetCommentServiceImpl implements QuestionSetCommentService 
         }
         if (comment.getSentiment() == null || (comment.getSentiment() != 1 && comment.getSentiment() != -1)) {
             throw new IllegalArgumentException("评价类型无效");
+        }
+        if (!actionRateLimitService.allowComment(comment.getUserId())) {
+            throw new IllegalArgumentException("评论过于频繁，请稍后再试");
         }
 
         QuestionSet set = questionSetMapper.selectById(comment.getQuestionSetId());

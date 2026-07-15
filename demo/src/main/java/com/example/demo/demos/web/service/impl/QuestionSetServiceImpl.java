@@ -7,6 +7,11 @@ import com.example.demo.demos.web.mapper.*;
 import com.example.demo.demos.web.pojo.*;
 import com.example.demo.demos.web.service.QuestionSetService;
 import com.example.demo.demos.web.service.UserMessageService;
+import com.example.demo.demos.web.redis.ActionRateLimitService;
+import com.example.demo.demos.web.redis.DistributedLockService;
+import com.example.demo.demos.web.redis.HotRankService;
+import com.example.demo.demos.web.redis.RedisCacheHelper;
+import com.example.demo.demos.web.redis.RedisKeyConstants;
 import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,10 +23,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class QuestionSetServiceImpl implements QuestionSetService {
@@ -55,6 +62,22 @@ public class QuestionSetServiceImpl implements QuestionSetService {
 
     @Resource
     private UserMessageService userMessageService;
+
+    @Resource
+    private RedisCacheHelper redisCacheHelper;
+
+    @Resource
+    private HotRankService hotRankService;
+
+    @Resource
+    private ActionRateLimitService actionRateLimitService;
+
+    @Resource
+    private DistributedLockService distributedLockService;
+
+    private void evictPublicQuestionSetCache() {
+        redisCacheHelper.evictByPrefix(RedisKeyConstants.PUBLIC_QSET_LIST_PREFIX);
+    }
 
     @Override
     public int createQuestionSet(QuestionSet questionSet) {
@@ -345,17 +368,32 @@ public class QuestionSetServiceImpl implements QuestionSetService {
     }
 
     @Override
-    public int importQuestionSet(Long setId, InputStream inputStream) {
+    public int importQuestionSet(Long setId, Long userId, InputStream inputStream) {
         if (setId == null) {
             throw new IllegalArgumentException("题库ID不能为空");
         }
+        if (userId == null) {
+            throw new IllegalArgumentException("用户ID不能为空");
+        }
+        QuestionSet set = questionSetMapper.selectById(setId);
+        if (set == null) {
+            throw new IllegalArgumentException("题库不存在");
+        }
+        if (!userId.equals(set.getUserId())) {
+            throw new IllegalArgumentException("无权导入该题库");
+        }
 
-        // 读取Excel并处理（使用已适配Question类的监听器）
-        QuestionExcelListener listener = new QuestionExcelListener(questionMapper, questionOptionMapper, fillAnswerMapper, setId);
-        EasyExcel.read(inputStream, QuestionExcelDTO.class, listener).sheet().doRead();
-
-        // 返回导入数量
-        return listener.getImportCount();
+        String lockKey = RedisKeyConstants.importLock(userId);
+        if (!distributedLockService.tryLock(lockKey)) {
+            throw new IllegalArgumentException("当前有导入任务进行中，请稍后再试");
+        }
+        try {
+            QuestionExcelListener listener = new QuestionExcelListener(questionMapper, questionOptionMapper, fillAnswerMapper, setId);
+            EasyExcel.read(inputStream, QuestionExcelDTO.class, listener).sheet().doRead();
+            return listener.getImportCount();
+        } finally {
+            distributedLockService.unlock(lockKey);
+        }
     }
 
     @Override
@@ -379,6 +417,8 @@ public class QuestionSetServiceImpl implements QuestionSetService {
                 LocalDateTime.now()
         );
         if (rows > 0) {
+            evictPublicQuestionSetCache();
+            hotRankService.setQuestionSetHotScore(setId, 0);
             QuestionSet published = questionSetMapper.selectById(setId);
             userMessageService.notifyFollowersNewPublicQuestionSet(
                     publisherId,
@@ -406,12 +446,28 @@ public class QuestionSetServiceImpl implements QuestionSetService {
         if (size == null || size < 1 || size > 50) {
             size = 10;
         }
+        final int pageFinal = page;
+        final int sizeFinal = size;
+        final String categoryFinal = category;
+        final String nameFinal = name;
+        final String sortByFinal = sortBy;
+        String cacheKey = RedisKeyConstants.publicQuestionSetList(categoryFinal, nameFinal, sortByFinal,
+                pageFinal, sizeFinal, currentUserId);
+        return redisCacheHelper.getOrLoad(cacheKey, () -> loadPublicQuestionSets(categoryFinal, nameFinal,
+                sortByFinal, currentUserId, pageFinal, sizeFinal), 5, TimeUnit.MINUTES);
+    }
+
+    private Map<String, Object> loadPublicQuestionSets(String category, String name, String sortBy,
+                                                       Long currentUserId, int page, int size) {
+        if ("hot".equals(sortBy) && name == null && hotRankService.countQuestionSetRank() > 0) {
+            Map<String, Object> hotResult = loadPublicQuestionSetsFromHotRank(category, currentUserId, page, size);
+            if (hotResult != null) {
+                return hotResult;
+            }
+        }
         int offset = (page - 1) * size;
         List<QuestionSet> publicSets = questionSetMapper.selectPublicQuestionSets(category, name, sortBy, currentUserId, offset, size);
-        for (QuestionSet set : publicSets) {
-            List<String> questionTags = questionMapper.selectTagsByQuestionSetId(set.getId());
-            set.setQuestionTags(mergeQuestionTags(questionTags));
-        }
+        enrichQuestionSetTags(publicSets);
         int total = questionSetMapper.countPublicQuestionSets(category, name);
         Map<String, Object> result = new HashMap<>();
         result.put("list", publicSets);
@@ -419,6 +475,44 @@ public class QuestionSetServiceImpl implements QuestionSetService {
         result.put("page", page);
         result.put("size", size);
         return result;
+    }
+
+    private Map<String, Object> loadPublicQuestionSetsFromHotRank(String category, Long currentUserId, int page, int size) {
+        int offset = (page - 1) * size;
+        List<Long> hotIds = hotRankService.getTopQuestionSetIds(offset, size);
+        if (hotIds.isEmpty()) {
+            return null;
+        }
+        List<QuestionSet> publicSets = questionSetMapper.selectPublicQuestionSetsByIds(hotIds, category, currentUserId);
+        if (publicSets.isEmpty()) {
+            return null;
+        }
+        Map<Long, QuestionSet> byId = new LinkedHashMap<>();
+        for (QuestionSet set : publicSets) {
+            byId.put(set.getId(), set);
+        }
+        List<QuestionSet> ordered = new ArrayList<>();
+        for (Long id : hotIds) {
+            QuestionSet set = byId.get(id);
+            if (set != null) {
+                ordered.add(set);
+            }
+        }
+        enrichQuestionSetTags(ordered);
+        int total = questionSetMapper.countPublicQuestionSets(category, null);
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", ordered);
+        result.put("total", total);
+        result.put("page", page);
+        result.put("size", size);
+        return result;
+    }
+
+    private void enrichQuestionSetTags(List<QuestionSet> publicSets) {
+        for (QuestionSet set : publicSets) {
+            List<String> questionTags = questionMapper.selectTagsByQuestionSetId(set.getId());
+            set.setQuestionTags(mergeQuestionTags(questionTags));
+        }
     }
 
     @Override
@@ -430,35 +524,53 @@ public class QuestionSetServiceImpl implements QuestionSetService {
         if (voteType == null || (voteType != 1 && voteType != -1)) {
             throw new IllegalArgumentException("投票类型无效");
         }
+        if (!actionRateLimitService.allowVote(userId, setId)) {
+            throw new IllegalArgumentException("投票过于频繁，请稍后再试");
+        }
         QuestionSet set = questionSetMapper.selectById(setId);
         if (set == null || set.getIsPublic() == null || set.getIsPublic() != 1) {
             throw new IllegalArgumentException("该题库当前非公开状态，无法投票");
         }
 
         QuestionSetVote existing = questionSetVoteMapper.selectBySetIdAndUserId(setId, userId);
+        Integer previousVoteType = existing != null ? existing.getVoteType() : null;
+        int result;
         if (existing == null) {
             QuestionSetVote vote = new QuestionSetVote();
             vote.setQuestionSetId(setId);
             vote.setUserId(userId);
             vote.setVoteType(voteType);
             questionSetVoteMapper.insert(vote);
-            return voteType;
-        }
-        if (existing.getVoteType().equals(voteType)) {
+            result = voteType;
+        } else if (existing.getVoteType().equals(voteType)) {
             questionSetVoteMapper.deleteById(existing.getId());
-            return 0;
+            result = 0;
+        } else {
+            questionSetVoteMapper.updateVoteType(existing.getId(), voteType);
+            result = voteType;
         }
-        questionSetVoteMapper.updateVoteType(existing.getId(), voteType);
-        return voteType;
+        int hotDelta = HotRankService.voteHotDelta(previousVoteType, result);
+        if (hotDelta != 0) {
+            hotRankService.incrementQuestionSetHot(setId, hotDelta);
+        }
+        evictPublicQuestionSetCache();
+        return result;
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class) // 事务保证：题库+题目+选项/答案原子导入
+    @Transactional(rollbackFor = Exception.class)
     public Long importPublicQuestionSet(Long publicSetId, Long userId) {
+        Long newSetId = doImportPublicQuestionSet(publicSetId, userId);
+        evictPublicQuestionSetCache();
+        return newSetId;
+    }
+
+    private Long doImportPublicQuestionSet(Long publicSetId, Long userId) {
         // 1. 参数校验
         if (publicSetId == null || userId == null) {
             throw new IllegalArgumentException("公共题库ID和导入用户ID不能为空");
         }
+        hotRankService.incrementQuestionSetHot(publicSetId, 3);
         // 2. 查询公共题库信息
         QuestionSet publicSet = questionSetMapper.selectById(publicSetId);
         if (publicSet == null || publicSet.getIsPublic() != 1) {
@@ -544,8 +656,12 @@ public class QuestionSetServiceImpl implements QuestionSetService {
         Long pid = isPublic ? publisherId : null;
 
         int rows = questionSetMapper.updatePublicStatus(id, publicStatus, pid, publishTime);
+        if (rows > 0) {
+            evictPublicQuestionSetCache();
+        }
         if (rows > 0 && Boolean.TRUE.equals(isPublic)
                 && before != null && (before.getIsPublic() == null || before.getIsPublic() != 1)) {
+            hotRankService.setQuestionSetHotScore(id, 0);
             QuestionSet after = questionSetMapper.selectById(id);
             Long notifyPublisher = pid != null ? pid : (after != null ? after.getPublisherId() : null);
             if (notifyPublisher != null) {

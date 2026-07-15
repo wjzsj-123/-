@@ -21,4 +21,11 @@ public interface UserService {
     User getUserByUsername(String username);
 
     List<User> getAllUsers();
+
+    /**
+     * 登录校验；若库中为旧版明文密码且校验通过，会自动升级为 BCrypt。
+     *
+     * @return 成功时返回用户（password 已置 null），失败返回 null
+     */
+    User authenticate(String username, String rawPassword);
 }

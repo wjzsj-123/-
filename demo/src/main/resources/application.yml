@@ -1,9 +1,21 @@
 spring:
-  # 数据库配置
+  # Redis 配置（本地默认 localhost:6379，生产可用环境变量覆盖）
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: 0
+    timeout: 3000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+  # 数据库配置（本地默认 localhost；Docker 通过环境变量 DB_URL/DB_USER/DB_PASSWORD 覆盖）
   datasource:
-    url: jdbc:mysql://localhost:3306/lp?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowMultiQueries=true
-    username: root
-    password: Qq299157
+    url: ${DB_URL:jdbc:mysql://localhost:3306/lp?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowMultiQueries=true}
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:Qq299157}
     driver-class-name: com.mysql.cj.jdbc.Driver
   # JPA 配置（可选，去除无关警告）
   jpa:
@@ -32,3 +44,8 @@ logging:
   level:
     com.example.demo.demos.web.mapper: DEBUG
     org.apache.ibatis: DEBUG
+
+# JWT 配置
+jwt:
+  secret: ${JWT_SECRET:lp-platform-jwt-secret-change-in-production-2026}
+  expiration-days: ${JWT_EXPIRATION_DAYS:7}

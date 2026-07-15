@@ -5,8 +5,8 @@
     <template v-else-if="center">
       <div class="hero-card">
         <div class="hero-main">
-          <h2 class="display-name">{{ center.nickname || center.username }}</h2>
-          <p class="sub">@{{ center.username }}</p>
+          <h2 class="display-name">{{ displayUserName(center) }}</h2>
+          <p v-if="hasNickname(center) && center.username" class="sub">登录账号：{{ center.username }}</p>
           <p v-if="center.ownProfile && center.email" class="email">邮箱：{{ center.email }}</p>
           <p v-if="!center.ownProfile" class="hint">用户 ID：{{ center.id }}</p>
           <p v-else class="hint">用户 ID：{{ center.id }}</p>
@@ -78,9 +78,8 @@
           <ul v-else-if="listModal.users.length" class="user-list">
             <li v-for="u in listModal.users" :key="u.id">
               <router-link :to="'/home/user/center/' + u.id" @click="listModal.open = false">
-                {{ u.nickname || u.username }}
+                {{ displayUserName(u) }}
               </router-link>
-              <span class="uname">@{{ u.username }}</span>
             </li>
           </ul>
           <div v-else class="empty">暂无数据</div>
@@ -94,6 +93,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { displayUserName, hasNickname } from '@/utils/userDisplay'
 
 const route = useRoute()
 const loading = ref(true)

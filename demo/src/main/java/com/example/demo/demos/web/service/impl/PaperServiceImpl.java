@@ -8,6 +8,10 @@ import com.example.demo.demos.web.service.PaperQuestionService;
 import com.example.demo.demos.web.service.PaperService;
 import com.example.demo.demos.web.service.QuestionOptionService;
 import com.example.demo.demos.web.service.UserMessageService;
+import com.example.demo.demos.web.redis.AnswerDraftRedisService;
+import com.example.demo.demos.web.redis.HotRankService;
+import com.example.demo.demos.web.redis.RedisCacheHelper;
+import com.example.demo.demos.web.redis.RedisKeyConstants;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,11 +20,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,6 +49,19 @@ public class PaperServiceImpl implements PaperService {
 
     @Resource
     private UserMessageService userMessageService;
+
+    @Resource
+    private AnswerDraftRedisService answerDraftRedisService;
+
+    @Resource
+    private RedisCacheHelper redisCacheHelper;
+
+    @Resource
+    private HotRankService hotRankService;
+
+    private void evictPublicPaperCache() {
+        redisCacheHelper.evictByPrefix(RedisKeyConstants.PUBLIC_PAPER_LIST_PREFIX);
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -159,6 +178,7 @@ public class PaperServiceImpl implements PaperService {
 
             userAnswerMapper.insert(answer);
         }
+        answerDraftRedisService.clearDraft(paperId, userId);
     }
 
     @Override
@@ -175,14 +195,19 @@ public class PaperServiceImpl implements PaperService {
         if (paperId == null || userId == null) {
             throw new IllegalArgumentException("试卷ID和用户ID不能为空");
         }
-        // 1. 删除原有草稿
-        userAnswerMapper.deleteDraftByPaperIdAndUserId(paperId, userId);
+        answerDraftRedisService.saveDraft(paperId, userId, answers);
+        List<UserAnswer> cached = answerDraftRedisService.getDraft(paperId, userId);
+        if (cached.isEmpty() && answers != null && !answers.isEmpty()) {
+            saveAnswerDraftToDb(paperId, userId, answers);
+        }
+    }
 
-        // 2. 保存新草稿（不判分，isCorrect置为null）
+    private void saveAnswerDraftToDb(Long paperId, Long userId, List<UserAnswer> answers) {
+        userAnswerMapper.deleteDraftByPaperIdAndUserId(paperId, userId);
         for (UserAnswer answer : answers) {
             answer.setPaperId(paperId);
             answer.setUserId(userId);
-            answer.setIsCorrect(null); // 草稿不判分
+            answer.setIsCorrect(null);
             answer.setUpdateTime(LocalDateTime.now());
             userAnswerMapper.insert(answer);
         }
@@ -192,6 +217,10 @@ public class PaperServiceImpl implements PaperService {
     public List<UserAnswer> getAnswerDraft(Long paperId, Long userId) {
         if (paperId == null || userId == null) {
             throw new IllegalArgumentException("试卷ID和用户ID不能为空");
+        }
+        List<UserAnswer> cached = answerDraftRedisService.getDraft(paperId, userId);
+        if (!cached.isEmpty()) {
+            return cached;
         }
         return userAnswerMapper.selectDraftByPaperIdAndUserId(paperId, userId);
     }
@@ -221,6 +250,8 @@ public class PaperServiceImpl implements PaperService {
         paper.setIsShared(true);
         paperMapper.updateById(paper);
         if (!wasShared) {
+            evictPublicPaperCache();
+            hotRankService.setPaperHotScore(paperId, 0);
             userMessageService.notifyFollowersNewSharedPaper(userId, paperId, paper.getTitle());
         }
         return paperMapper.selectById(paperId);
@@ -249,12 +280,59 @@ public class PaperServiceImpl implements PaperService {
         if (size == null || size < 1 || size > 50) {
             size = 10;
         }
+        final int pageFinal = page;
+        final int sizeFinal = size;
+        final String nameFinal = name;
+        final String sortByFinal = sortBy;
+        String cacheKey = RedisKeyConstants.publicPaperList(nameFinal, sortByFinal, pageFinal, sizeFinal, currentUserId);
+        return redisCacheHelper.getOrLoad(cacheKey, () -> loadPublicPapers(nameFinal, sortByFinal,
+                currentUserId, pageFinal, sizeFinal), 5, TimeUnit.MINUTES);
+    }
+
+    private Map<String, Object> loadPublicPapers(String name, String sortBy, Long currentUserId, int page, int size) {
+        if ("hot".equals(sortBy) && name == null && hotRankService.countPaperRank() > 0) {
+            Map<String, Object> hotResult = loadPublicPapersFromHotRank(currentUserId, page, size);
+            if (hotResult != null) {
+                return hotResult;
+            }
+        }
         int offset = (page - 1) * size;
         List<Paper> papers = paperMapper.selectPublicPapers(name, sortBy, currentUserId, offset, size);
         enrichQuestionTags(papers);
         int total = paperMapper.countPublicPapers(name);
         Map<String, Object> result = new HashMap<>();
         result.put("list", papers);
+        result.put("total", total);
+        result.put("page", page);
+        result.put("size", size);
+        return result;
+    }
+
+    private Map<String, Object> loadPublicPapersFromHotRank(Long currentUserId, int page, int size) {
+        int offset = (page - 1) * size;
+        List<Long> hotIds = hotRankService.getTopPaperIds(offset, size);
+        if (hotIds.isEmpty()) {
+            return null;
+        }
+        List<Paper> papers = paperMapper.selectPublicPapersByIds(hotIds, currentUserId);
+        if (papers.isEmpty()) {
+            return null;
+        }
+        Map<Long, Paper> byId = new LinkedHashMap<>();
+        for (Paper paper : papers) {
+            byId.put(paper.getId(), paper);
+        }
+        List<Paper> ordered = new ArrayList<>();
+        for (Long id : hotIds) {
+            Paper paper = byId.get(id);
+            if (paper != null) {
+                ordered.add(paper);
+            }
+        }
+        enrichQuestionTags(ordered);
+        int total = paperMapper.countPublicPapers(null);
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", ordered);
         result.put("total", total);
         result.put("page", page);
         result.put("size", size);
@@ -292,6 +370,8 @@ public class PaperServiceImpl implements PaperService {
         if (!relations.isEmpty()) {
             paperQuestionService.batchAdd(relations);
         }
+        hotRankService.incrementPaperHot(source.getId(), 3);
+        evictPublicPaperCache();
         return paperMapper.selectById(target.getId());
     }
 
@@ -318,6 +398,8 @@ public class PaperServiceImpl implements PaperService {
         }
         paperMapper.updateById(paper);
         if (Boolean.TRUE.equals(isPublic) && !wasShared) {
+            evictPublicPaperCache();
+            hotRankService.setPaperHotScore(paperId, 0);
             userMessageService.notifyFollowersNewSharedPaper(userId, paperId, paper.getTitle());
         }
         return paperMapper.selectById(paperId);
@@ -337,6 +419,7 @@ public class PaperServiceImpl implements PaperService {
             throw new IllegalArgumentException("只能重做自己的试卷");
         }
         userAnswerMapper.deleteByPaperIdAndUserId(paperId, userId);
+        answerDraftRedisService.clearDraft(paperId, userId);
         paper.setIsAnswered(false);
         paper.setLastAnswerTime(null);
         paperMapper.updateById(paper);

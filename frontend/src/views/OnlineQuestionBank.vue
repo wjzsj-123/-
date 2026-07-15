@@ -136,6 +136,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus' // 如需使用element-ui提示，需先安装：npm i element-plus
 import { useRouter } from 'vue-router'
+import { displayUserName } from '@/utils/userDisplay'
 
 const router = useRouter()
 
@@ -247,7 +248,7 @@ const importBank = async (publicSetId) => {
   }
 
   try {
-    const response = await fetch(`/api/question-set/public/import/${publicSetId}?userId=${userId}`, {
+    const response = await fetch(`/api/question-set/public/import/${publicSetId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     })
@@ -269,9 +270,7 @@ const goDiscussion = (setId) => {
   router.push(`/home/online-bank/${setId}/discussion`)
 }
 
-const publisherDisplayName = (bank) => {
-  return bank.publisherNickname || bank.publisherUsername || `用户${bank.publisherId}`
-}
+const publisherDisplayName = (bank) => displayUserName(bank)
 
 const canFollowPublisher = (bank) => {
   if (!bank.publisherId || !currentUserId.value) return false
@@ -303,7 +302,7 @@ const voteBank = async (bank, voteType) => {
     return
   }
   try {
-    const response = await fetch(`/api/question-set/public/${bank.id}/vote?userId=${currentUserId.value}&voteType=${voteType}`, {
+    const response = await fetch(`/api/question-set/public/${bank.id}/vote?voteType=${voteType}`, {
       method: 'POST'
     })
     const result = await response.json()
